@@ -1,0 +1,10 @@
+fastapi
+silero
+openai-whisper
+torch
+torchaudio 
+transformers 
+accelerate 
+bitsandbytes
+sentencepiece
+protobuf 
