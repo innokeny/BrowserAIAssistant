@@ -7,4 +7,9 @@ transformers
 accelerate 
 bitsandbytes
 sentencepiece
-protobuf 
+protobuf
+python-dotenv
+soundfile
+python-multipart
+uvicorn
+google-generativeai

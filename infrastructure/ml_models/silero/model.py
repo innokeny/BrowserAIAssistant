@@ -8,7 +8,7 @@ class SileroModel:
         self.model, self.symbols, self.speakers = self._load_model(model_dir)
 
     def _load_model(self, model_dir: Path):
-        model_path = model_dir / "model.pt"
+        model_path = model_dir / "v3_1_ru.pt"
         if not model_path.exists():
             raise FileNotFoundError(f"Silero model not found at {model_path}")
             

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from core.use_cases.llm_use_cases import LLMUseCase
+from core.use_cases._llm_use_cases import LLMUseCase
 from infrastructure.ml_models.tinyllama.model import TinyLlamaModel
 
 router = APIRouter(prefix="/llm", tags=["language-model"])

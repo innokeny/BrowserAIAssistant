@@ -9,16 +9,13 @@ Voice Assistant Extention
 │   ├── use_cases/
 │   │   ├── stt_use_cases.py  # Сценарии для распознавания речи
 │   │   ├── tts_use_cases.py  # Сценарии для синтеза речи
-│   │   └── llm_use_cases.py  # Сценарии для языковой модели
+│   │   └── 
 │   └── repositories/
 │       ├── audio_repository.py
 │       └── text_repository.py
 │
 ├── infrastructure/
 │   ├── ml_models/            # Модели ML
-│   │   ├── tinyllama/        # TinyLlama
-│   │   │   ├── model.py      # Обертка для модели
-│   │   │   └── utils.py      # Вспомогательные функции
 │   │   ├── silero/           # Silero TTS
 │   │   │   ├── model.py
 │   │   │   └── utils.py
@@ -30,12 +27,12 @@ Voice Assistant Extention
 │       ├── controllers/
 │       │   ├── stt_controller.py  # API для распознавания речи
 │       │   ├── tts_controller.py  # API для синтеза речи
-│       │   └── llm_controller.py  # API для языковой модели
+│       │   └── 
 │       └── middlewares/      # Промежуточное ПО
 │
 ├── config/
 │   ├── settings.py           # Основные настройки
-│   ├── tinyllama.py          # Конфиг TinyLlama
+│   ├── 
 │   ├── silero.py             # Конфиг Silero
 │   └── whisper.py            # Конфиг Whisper
 │
