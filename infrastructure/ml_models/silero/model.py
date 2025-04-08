@@ -1,6 +1,9 @@
 import torch
 from pathlib import Path
 from config.silero import SILERO_MODEL_DIR, SILERO_DEVICE
+import torchaudio
+import io
+
 
 class SileroModel:
     def __init__(self, model_dir: Path = SILERO_MODEL_DIR):
@@ -22,9 +25,18 @@ class SileroModel:
         speaker: str = "random",
         sample_rate: int = 24000
     ) -> bytes:
-        audio = self.model.apply_tts(
-            text=text,
-            speaker=speaker,
-            sample_rate=sample_rate
-        )
-        return audio.numpy().tobytes()
+        try:
+            audio = self.model.apply_tts(
+                text=text,
+                speaker=speaker,
+                sample_rate=sample_rate
+            )
+
+            buffer = io.BytesIO()
+            torchaudio.save(buffer, audio.unsqueeze(0), sample_rate, format="wav")
+            buffer.seek(0)
+            
+            return buffer.getvalue()
+        except Exception as e:
+            print(f"Silero error: {str(e)}")
+            raise
