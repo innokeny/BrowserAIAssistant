@@ -13,7 +13,7 @@ class TranscriptionResult:
         self.text = text
         self.is_success = is_success
         self.error_message = error_message
-
+        
 class TextInput:
     def __init__(self, text: str):
         self.text = text

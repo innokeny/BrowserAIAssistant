@@ -8,7 +8,6 @@ class SpeechToTextUseCase:
 
     async def transcribe(self, audio_input: AudioInput, language: Optional[str] = None) -> TranscriptionResult:
         try:
-            # Делегируем работу модели
             text = await self.stt_model.transcribe(
                 audio_data=audio_input.data,
                 sample_rate=audio_input.sample_rate,
@@ -19,5 +18,5 @@ class SpeechToTextUseCase:
             return TranscriptionResult(
                 text="",
                 is_success=False,
-                error_message=str(e)
+                error_message=f"Transcription failed: {str(e)}"
             )
