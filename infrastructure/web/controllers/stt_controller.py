@@ -63,7 +63,8 @@ async def transcribe_audio(file: UploadFile, language: str = None):
             
         if not result.is_success:
             raise HTTPException(400, detail=result.error_message)
-            
+        
+        logger.info(f"text: {result.text}")
         return {"text": result.text}
     except Exception as e:
         logger.error("Transcription failed: %s", str(e), exc_info=True)

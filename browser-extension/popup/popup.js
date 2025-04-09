@@ -117,15 +117,25 @@ async function transcribeAudio(audioBlob) {
 
 // Генерация ответа через LLM
 async function generateText(text) {
-  const response = await fetch('http://localhost:8000/generate', {
+  const response = await fetch('http://localhost:8000/gemini/generate', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt: text })
+    headers: { 
+      'Content-Type': 'application/json' 
+    },
+    body: JSON.stringify({
+      prompt: text,          // Строка с текстом
+      max_length: 512,       // Опциональные параметры
+      temperature: 0.7       // Можно задать значения по умолчанию
+    })
   });
 
-  if (!response.ok) throw new Error("Ошибка генерации");
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Ошибка генерации");
+  }
+  
   const data = await response.json();
-  return data.response;
+  return data.text;
 }
 
 // Воспроизведение TTS
