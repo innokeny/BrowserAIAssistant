@@ -1,9 +1,14 @@
 from core.entities.audio import AudioInput
 from core.entities.text import TranscriptionResult
 from typing import Optional
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 class SpeechToTextUseCase:
     def __init__(self, stt_model):
+        logger.debug("Initializing STT use case...")
         self.stt_model = stt_model
 
     async def transcribe(self, audio_input: AudioInput, language: Optional[str] = None) -> TranscriptionResult:
