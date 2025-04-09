@@ -1,68 +1,101 @@
-Voice Assistant Extention
+# Voice Assistant Extention
+
+Расширяемый голосовой ассистент с поддержкой современных ML-моделей (Whisper, Silero, Gemini)
 
 ```
-│
-├── core/
-│   ├── entities/
-│   │   ├── audio.py          # Аудио сущности
-│   │   └── text.py           # Текстовые сущности
-│   ├── use_cases/
-│   │   ├── stt_use_cases.py  # Сценарии для распознавания речи
-│   │   ├── tts_use_cases.py  # Сценарии для синтеза речи
-│   │   └── 
-│   └── repositories/
-│       ├── audio_repository.py
-│       └── text_repository.py
-│
-├── infrastructure/
-│   ├── ml_models/            # Модели ML
-│   │   ├── silero/           # Silero TTS
-│   │   │   ├── model.py
-│   │   │   └── utils.py
-│   │   └── whisper/          # Whisper STT
-│   │       ├── model.py
-│   │       └── utils.py
-│   ├── db/
-│   └── web/
-│       ├── controllers/
-│       │   ├── stt_controller.py  # API для распознавания речи
-│       │   ├── tts_controller.py  # API для синтеза речи
-│       │   └── 
-│       └── middlewares/      # Промежуточное ПО
-│
-├── config/
-│   ├── settings.py           # Основные настройки
-│   ├── 
-│   ├── silero.py             # Конфиг Silero
-│   └── whisper.py            # Конфиг Whisper
-│
-├── static/                   # Статические файлы (аудио и т.д.)
-│
-├── requirements/
-│   ├── base.txt              # Базовые зависимости
-│   ├── ml.txt                # ML зависимости
-│   └── dev.txt               # Для разработки
-│
-├── scripts/                  # Скрипты для загрузки моделей
-│   ├── download_models.py
-│   └── prepare_environment.py
-│
-└── main.py                   # Точка входа
-
+.
+├── README.md
+├── config
+│   ├── gemini.py
+│   ├── settings.py
+│   ├── silero.py
+│   └── whisper.py
+├── core
+│   ├── entities
+│   │   ├── audio.py
+│   │   ├── text.py
+│   │   └── user.py
+│   ├── repositories
+│   │   └── user_repository.py
+│   └── use_cases
+│       ├── gemini_use_cases.py
+│       ├── stt_use_cases.py
+│       ├── tts_use_cases.py
+│       └── user_use_cases.py
+├── infrastructure
+│   ├── db
+│   │   └── user_repository_impl.py
+│   ├── ml_models
+│   │   ├── silero
+│   │   │   └── model.py
+│   │   └── whisper
+│   │       └── model.py
+│   └── web
+│       └── controllers
+│           ├── gemini_controller.py
+│           ├── stt_controller.py
+│           ├── tts_controller.py
+│           └── user_controller.py
+├── main.py
+├── models
+│   ├── silero
+│   │   └── v3_1_ru.pt
+│   └── whisper
+│       ├── base.pt
+│       └── small.pt
+├── requirements.txt
+└── scripts
+    └── download_models.py
 ```
 
 
-Описание слоев
+## Описание архитектуры
 
-Core (Ядро):
-- entities: Содержит бизнес-сущности (например, User), которые представляют основные объекты предметной области.
-- use_cases: Содержит сценарии использования (бизнес-логику), которые описывают, как приложение должно работать.
-- repositories: Определяет интерфейсы для работы с данными (например, UserRepository). Это абстракции, которые не зависят от конкретной реализации.
+### Core (Ядро)
+- **Entities**: Базовые DTO-объекты:
+  - `Audio` – аудиоданные и метаинформация
+  - `Text` – результаты обработки текста
+  - `User` – данные пользователя
+- **Use Cases**: Бизнес-логика:
+  - STT/TTS – преобразование речи в текст и обратно
+  - Gemini – интеграция с LLM
+  - User – управление пользователями
+- **Repositories**: Абстракции для работы с хранилищами
 
+### Infrastructure (Инфраструктура)
+- **ML Models**: Реализации ML-моделей:
+  - Whisper – speech-to-text
+  - Silero – text-to-speech 
+- **Web**: FastAPI-контроллеры для:
+  - Речевых операций (STT/TTS)
+  - Работы с Gemini
+  - Пользовательского API
+- **DB**: Реализация хранилища данных
 
-Infrastructure (Инфраструктура):
-- db: Реализация репозиториев (например, UserRepositoryImpl), которая работает с базой данных.
-- web: Веб-слой, который обрабатывает HTTP-запросы и взаимодействует с ядром через контроллеры.
+### Конфигурация
+- Централизованное управление параметрами:
+  - Пути к моделям
+  - Настройки API-ключей
+  - Параметры генерации
 
-Config (Конфигурация):
-- main.py:  Точка входа в приложение, где инициализируются зависимости и запускается приложение.
+## Быстрый старт
+1. Установите зависимости:
+```bash
+pip install -r requirements.txt
+```
+2. Загрузите модели:
+```bash
+python scripts/download_models.py
+```
+3. Запустите приложение:
+```bash
+python main.py
+```
+
+API будет доступно на http://localhost:8000/docs
+
+### Поддерживаемые технологии
+- STT: OpenAI Whisper (base/small)
+- TS: Silero v3 (русский язык)
+- LLM: Google Gemini
+- Web: FastAPI, Uvicorn
