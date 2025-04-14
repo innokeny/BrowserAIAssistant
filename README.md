@@ -5,7 +5,23 @@
 ```
 .
 ├── README.md
+├── app.log
+├── browser-extension
+│   ├── background
+│   │   └── background.js
+│   ├── content
+│   │   └── content.js
+│   ├── icons
+│   │   ├── icon-128.png
+│   │   ├── icon-48.png
+│   │   └── mic-icon.png
+│   ├── manifest.json
+│   └── popup
+│       ├── popup.css
+│       ├── popup.html
+│       └── popup.js
 ├── config
+│   ├── _tinyllama.py
 │   ├── gemini.py
 │   ├── settings.py
 │   ├── silero.py
@@ -18,6 +34,7 @@
 │   ├── repositories
 │   │   └── user_repository.py
 │   └── use_cases
+│       ├── _llm_use_cases.py
 │       ├── gemini_use_cases.py
 │       ├── stt_use_cases.py
 │       ├── tts_use_cases.py
@@ -26,12 +43,15 @@
 │   ├── db
 │   │   └── user_repository_impl.py
 │   ├── ml_models
+│   │   ├── _tinyllama
+│   │   │   └── model.py
 │   │   ├── silero
 │   │   │   └── model.py
 │   │   └── whisper
 │   │       └── model.py
 │   └── web
 │       └── controllers
+│           ├── _llm_controller.py
 │           ├── gemini_controller.py
 │           ├── stt_controller.py
 │           ├── tts_controller.py

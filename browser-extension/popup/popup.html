@@ -2,42 +2,11 @@
 <html>
 <head>
   <meta charset="UTF-8">  
-  <style>
-    .container { padding: 10px; text-align: center; }
-    .mic-button {
-      transition: all 0.3s ease;
-      background-color: #4CAF50;
-      border-radius: 50%;
-      padding: 15px;
-    }
-    .mic-button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    .mic-button img { width: 48px; height: 48px; }
-    #status { margin: 10px 0; color: #666; }
-    
-    .recording {
-      background-color: #f44336 !important;
-      transform: scale(1.1);
-    }
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.1); }
-      100% { transform: scale(1); }
-    }
-    .permission-help {
-      margin-top: 15px;
-      padding: 10px;
-      background: #ffe6e6;
-      border-radius: 5px;
-      font-size: 12px;
-    }
-  </style>
+  <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <div class="container">
-    <button id="startListening" class="mic-button">
+    <button id="startBtn" class="mic-button">
       <img src="../icons/mic-icon.png" alt="Запись">
     </button>
     <div id="status">Нажмите и говорите</div>
@@ -50,6 +19,6 @@
       <li>В разделе "Микрофон" выберите "Разрешить"</li>
     </ol>
   </div>
-  <script src="popup.js"></script>
+  <script type="module" src="popup.js"></script>
 </body>
 </html>

@@ -26,10 +26,11 @@ class SileroModel:
     async def synthesize(
         self,
         text: str,
-        speaker: str = "aidar",
+        speaker: str = "baya",
         sample_rate: int = 24000
     ) -> bytes:
         try:
+            logger.info(f"Starting TTS for text: '{text}' (speaker: {speaker})")
             # Проверка и выбор спикера
             if speaker == "random":
                 speaker = random.choice(self.speakers)
@@ -42,6 +43,7 @@ class SileroModel:
                 speaker=speaker,
                 sample_rate=sample_rate
             )
+            logger.info(f"Audio tensor shape: {audio.shape}")
 
             # Конвертация в WAV
             buffer = io.BytesIO()
@@ -53,7 +55,10 @@ class SileroModel:
                 encoding="PCM_S",
                 bits_per_sample=16
             )
-            return buffer.getvalue()
+            wav_data = buffer.getvalue()
+            logger.info(f"Generated WAV size: {len(wav_data)} bytes")
+
+            return wav_data
             
         except Exception as e:
             logger.error(f"Silero synthesis error: {str(e)}", exc_info=True)

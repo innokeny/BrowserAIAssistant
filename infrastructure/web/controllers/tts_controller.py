@@ -16,25 +16,28 @@ use_case = TextToSpeechUseCase(model)
 def is_russian_text(text: str) -> bool:
     """Проверяет, содержит ли текст только русские символы"""
     try:
-        return all('\u0400' <= char <= '\u04FF' or char.isspace() or char in ',.!?' 
-                 for char in text)
+        allowed_symbols = {' ', ',', '.', '!', '?', ':', '%', '-', '(', ')', '/'}
+        return all(
+            '\u0400' <= char <= '\u04FF' or  
+            char in allowed_symbols or       
+            char.isdigit()                   
+            for char in text
+        )
     except Exception as e:
         logger.error(f"Language check error: {str(e)}")
         return False
 
-@router.get("/synthesize")
+@router.post("/synthesize")
 async def synthesize_speech(
-    text: str = Query(..., example="привет"),
-    speaker: str = Query("aidar", example="aidar")
+    request_data: dict  # {"text": "текст", "speaker": "aidar"}
 ) -> StreamingResponse:
+    text = request_data.get("text", "")
+    speaker = request_data.get("speaker", "baya")
     try:
-        # Декодирование и проверка текста
-        decoded_text = unquote(text)
-        if not is_russian_text(decoded_text):
+        if not is_russian_text(text):
             raise HTTPException(400, detail="Поддерживается только русский язык")
 
-        # Генерация аудио
-        text_input = TextInput(text=decoded_text)
+        text_input = TextInput(text=text)
         result = await use_case.synthesize(text_input=text_input, speaker=speaker)
         
         if not result.is_success:
