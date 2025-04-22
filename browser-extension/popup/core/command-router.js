@@ -1,10 +1,13 @@
 import { ScrollScenario } from './scenarios/scroll.js';
 import { LLMChatScenario } from './scenarios/llm-chat.js';
 import { SearchScenario } from './scenarios/search.js';
+import { NewTabScenario } from './scenarios/new-tab-scenario.js';
+
 
 const SCENARIOS = [
     ScrollScenario,
     SearchScenario,
+    NewTabScenario,
     LLMChatScenario // Всегда последний!
 ];
 

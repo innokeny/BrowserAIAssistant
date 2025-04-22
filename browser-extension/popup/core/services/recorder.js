@@ -2,62 +2,34 @@ export class AudioRecorder {
     constructor() {
         this.mediaRecorder = null;
         this.audioChunks = [];
-        this.stream = null;
         this.isRecording = false;
     }
 
-    async toggleRecording() {
-        if (this.isRecording) {
-            return this.stop();
-        }
-        return this.start();
-    }
-
-    async start() {
+    async startRecording() {
         try {
-            this.stream = await navigator.mediaDevices.getUserMedia({
-                audio: {
-                    sampleRate: 16000,
-                    channelCount: 1,
-                    noiseSuppression: true,
-                    echoCancellation: true
-                }
-            });
-
-            this.mediaRecorder = new MediaRecorder(this.stream);
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            this.mediaRecorder = new MediaRecorder(stream);
             this.audioChunks = [];
-            this.isRecording = true;
 
             this.mediaRecorder.ondataavailable = (e) => {
                 this.audioChunks.push(e.data);
             };
 
             this.mediaRecorder.start();
-            return new Promise((resolve) => {
-                this.mediaRecorder.onstop = () => {
-                    resolve(new Blob(this.audioChunks, { type: 'audio/webm; codecs=opus' }));
-                };
-            });
-
+            this.isRecording = true;
         } catch (err) {
-            this.cleanup();
-            throw err;
+            throw new Error('Микрофон недоступен: ' + err.message);
         }
     }
 
-    async stop() {
-        if (!this.isRecording) return null;
-        this.mediaRecorder.stop();
-        this.cleanup();
-        this.isRecording = false;
-    }
-
-    cleanup() {
-        this.stream?.getTracks().forEach(track => {
-            track.stop();
-            track.enabled = false;
+    async stopRecording() {
+        return new Promise((resolve) => {
+            this.mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+                this.isRecording = false;
+                resolve(audioBlob);
+            };
+            this.mediaRecorder.stop();
         });
-        this.mediaRecorder = null;
-        this.audioChunks = [];
     }
 }
