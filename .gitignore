@@ -17,6 +17,5 @@ build/
 *.swo
 .DS_Store
 models/
-_tinyllama/
-_llm_use_cases.py
+
 app.log

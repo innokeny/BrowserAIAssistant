@@ -9,20 +9,17 @@ warnings.filterwarnings("ignore", category=UserWarning)
 def download_silero_model(save_dir: Path):
     """Загрузка модели Silero TTS с правильной инициализацией"""
     try:
-        # Явно указываем путь для кеширования
         torch.hub.set_dir(str(save_dir))
         
-        # Загружаем модель с правильными параметрами
         model = torch.hub.load(
             repo_or_dir='snakers4/silero-models',
             model='silero_tts',
             language='ru',
             speaker='v3_1_ru',
             trust_repo=True,
-            verbose=False  # Отключаем вывод логов загрузки
+            verbose=False  
         )
         
-        # Сохраняем только необходимые компоненты модели
         torch.save({
             'model_state_dict': model.state_dict(),
             'symbols': model.symbols,
@@ -48,19 +45,6 @@ def download_whisper_model(model_name: str, save_dir: Path):
         print(f"Error downloading Whisper: {e}")
         raise
 
-def download_all_models():
-    models_dir = Path("models")
-    models_dir.mkdir(exist_ok=True)
-    
-    try:
-        print("Downloading Silero TTS model...")
-        silero_dir = models_dir / "silero"
-        silero_dir.mkdir(exist_ok=True)
-        download_silero_model(silero_dir)
-    except Exception as e:
-        print(f"Final Silero download error: {str(e)}")
-        print("Consider manual download from:")
-        print("https://models.silero.ai/models/tts/ru/v3_1_ru.pt")
-
 if __name__ == "__main__":
-    download_all_models()
+    download_silero_model(Path('models/silero'))
+    download_whisper_model('small', Path('models/whisper'))

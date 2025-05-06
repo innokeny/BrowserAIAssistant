@@ -1,7 +1,7 @@
 export class LLMService {
     static async generate(prompt) {
         try {
-            const response = await fetch('http://localhost:8000/gemini/generate', {
+            const response = await fetch('http://localhost:8000/qwen/generate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -9,7 +9,7 @@ export class LLMService {
                 body: JSON.stringify({
                     prompt: prompt.slice(0, 1000), // Ограничение длины запроса
                     temperature: 0.7,
-                    max_length: 512
+                    max_length: 256
                 })
             });
 

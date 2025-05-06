@@ -3,7 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware  # Импорт middleware CO
 from infrastructure.web.controllers.user_controller import router as user_router
 from infrastructure.web.controllers.stt_controller import router as stt_router
 from infrastructure.web.controllers.tts_controller import router as tts_router
-from infrastructure.web.controllers.gemini_controller import router as gemini_router
+# from infrastructure.web.controllers.gemini_controller import router as gemini_router
+from infrastructure.web.controllers.qwen_controller import router as qwen_router
+
 import logging
 import os
 import sys
@@ -42,7 +44,8 @@ app.add_middleware(
 app.include_router(user_router)
 app.include_router(stt_router)
 app.include_router(tts_router)
-app.include_router(gemini_router)
+# app.include_router(gemini_router)
+app.include_router(qwen_router)
 
 @app.get("/")
 def read_root():
