@@ -1,4 +1,22 @@
 services:
+  api:
+    build: .
+    container_name: "fastapi_app"
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=redis
+      - RABBITMQ_HOST=rabbitmq
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+    restart: always
+
   db:
     image: postgres:15-alpine
     container_name: "postgres_db"
@@ -6,7 +24,6 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: pg_db
-      POSTGRES_PORT: 5433
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgres_data:/var/lib/postgresql/data/pgdata
@@ -23,17 +40,6 @@ services:
       - redis_data:/data
     restart: always
 
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: "pgadmin"
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: root
-    volumes:
-      - data_pgadmin:/var/lib/pgadmin
-    ports:
-      - "8080:80"
-
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: "rabbitmq"
@@ -47,8 +53,21 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
     restart: always
 
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: "pgadmin"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    volumes:
+      - data_pgadmin:/var/lib/pgadmin
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
+
 volumes:
   postgres_data:
   data_pgadmin:
   redis_data:
-  rabbitmq_data:
+  rabbitmq_data: 

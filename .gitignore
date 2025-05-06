@@ -17,5 +17,5 @@ build/
 *.swo
 .DS_Store
 models/
-
+.cursor/rules/project.mdc
 app.log

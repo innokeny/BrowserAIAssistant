@@ -56,7 +56,10 @@ def test_redis():
     print("\nTesting Redis connection...")
     try:
         # Connect to Redis
-        r = redis.Redis(host='localhost', port=6379, db=0)
+        redis_host = os.getenv("REDIS_HOST", "localhost")
+        redis_port = int(os.getenv("REDIS_PORT", "6379"))
+        
+        r = redis.Redis(host=redis_host, port=redis_port, db=0)
         
         # Test set and get
         r.set('test_key', 'test_value')

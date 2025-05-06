@@ -7,11 +7,13 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 def download_silero_model(save_dir: Path):
-    """Загрузка модели Silero TTS с правильной инициализацией"""
+    """Загрузка модели Silero TTS"""
     try:
+        # Устанавливаем директорию для кэша torch.hub
         torch.hub.set_dir(str(save_dir))
         
-        model = torch.hub.load(
+        # Загружаем модель (она автоматически сохранится в кэше)
+        model, sample_rate = torch.hub.load(
             repo_or_dir='snakers4/silero-models',
             model='silero_tts',
             language='ru',
@@ -20,16 +22,10 @@ def download_silero_model(save_dir: Path):
             verbose=False  
         )
         
-        torch.save({
-            'model_state_dict': model.state_dict(),
-            'symbols': model.symbols,
-            'speakers': model.speakers
-        }, save_dir / "silero_model.pt")
-        
-        print(f"Silero model components saved to {save_dir/'silero_model.pt'}")
+        print(f"Silero model downloaded to {save_dir}")
         return model
     except Exception as e:
-        print(f"Error saving Silero components: {e}")
+        print(f"Error downloading Silero model: {e}")
         raise
 
 def download_whisper_model(model_name: str, save_dir: Path):
@@ -42,9 +38,18 @@ def download_whisper_model(model_name: str, save_dir: Path):
         print(f"Whisper model {model_name} downloaded to {save_dir}")
         return model
     except Exception as e:
-        print(f"Error downloading Whisper: {e}")
+        print(f"Error downloading Whisper model: {e}")
         raise
 
 if __name__ == "__main__":
+    # Создаем директории если их нет
+    Path('models/silero').mkdir(parents=True, exist_ok=True)
+    Path('models/whisper').mkdir(parents=True, exist_ok=True)
+    
+    print("Starting model downloads...")
+    
+    # Скачиваем модели
     download_silero_model(Path('models/silero'))
     download_whisper_model('small', Path('models/whisper'))
+    
+    print("All models downloaded successfully!")
