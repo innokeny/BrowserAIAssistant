@@ -133,22 +133,56 @@
   - Конфигурация RabbitMQ
 
 ## Быстрый старт
-1. Установите зависимости:
+
+### Предварительные требования
+- Docker и Docker Compose
+- Git
+
+### Запуск приложения
+1. Клонируйте репозиторий:
 ```bash
-pip install -r requirements.txt
+git clone <repository-url>
+cd BrowserAIAssistant
 ```
 
-2. Загрузите модели:
+2. Запустите приложение через Docker Compose:
 ```bash
-python scripts/download_models.py
+docker-compose up -d
 ```
 
-3. Запустите приложение:
+Это запустит:
+- FastAPI приложение на порту 8000
+- PostgreSQL на порту 5433
+- Redis на порту 6379
+- RabbitMQ на порту 5672
+- pgAdmin на порту 8080
+
+3. Проверьте статус контейнеров:
 ```bash
-python main.py
+docker-compose ps
 ```
 
-API будет доступно на http://localhost:8000/docs
+4. API будет доступно на http://localhost:8000/docs
+
+### Остановка приложения
+```bash
+docker-compose down
+```
+
+### Просмотр логов
+```bash
+# Все логи
+docker-compose logs -f
+
+# Логи конкретного сервиса
+docker-compose logs -f api
+docker-compose logs -f db
+docker-compose logs -f redis
+docker-compose logs -f rabbitmq
+```
+
+### Переменные окружения
+Все необходимые переменные окружения уже настроены в `docker-compose.yml`. При необходимости их можно изменить в этом файле.
 
 ### Поддерживаемые технологии
 - STT: OpenAI Whisper (base/small)
