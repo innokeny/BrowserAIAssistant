@@ -9,7 +9,7 @@ from contextlib import contextmanager
 POSTGRES_USER = os.getenv('POSTGRES_USER', 'postgres')
 POSTGRES_PASSWORD = os.getenv('POSTGRES_PASSWORD', 'postgres')
 POSTGRES_HOST = os.getenv('POSTGRES_HOST', 'localhost')
-POSTGRES_PORT = os.getenv('POSTGRES_PORT', '5433')
+POSTGRES_PORT = os.getenv('POSTGRES_PORT', '5432')
 POSTGRES_DB = os.getenv('POSTGRES_DB', 'pg_db')
 
 # Redis connection
@@ -58,7 +58,7 @@ def get_data_from_db():
     user = 'postgres' 
     password = 'postgres'  
     host = 'localhost'  
-    port = '5433'  
+    port = '5432'  
     database = 'pg_db'  
 
     connection_string = f'postgresql://{user}:{password}@{host}:{port}/{database}'

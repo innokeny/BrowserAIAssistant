@@ -1,22 +1,38 @@
 from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import Optional, List, Dict, Any
 from core.use_cases.user_use_cases import UserUseCases
 from infrastructure.db.user_repository_impl import UserRepositoryImpl
+from infrastructure.web.auth_service import AuthService
 from core.entities.user import User
 
 router = APIRouter()
 user_repository = UserRepositoryImpl()
 user_use_cases = UserUseCases(user_repository)
+auth_service = AuthService()
 
+# User Models
 class UserCreate(BaseModel):
     name: str
     email: str
+
+class UserRegistration(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
 
 class UserResponse(BaseModel):
     id: int
     name: str
     email: str
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
 
 class QuotaResponse(BaseModel):
     resource_type: str
@@ -31,10 +47,55 @@ class RequestHistoryResponse(BaseModel):
     processing_time: Optional[int]
     created_at: str
 
+# Authentication Routes
+@router.post("/register", response_model=TokenResponse)
+async def register(user_data: UserRegistration):
+    """
+    Register a new user with authentication.
+    """
+    token, error = auth_service.register_user(
+        name=user_data.name,
+        email=user_data.email,
+        password=user_data.password
+    )
+    
+    if error:
+        raise HTTPException(status_code=400, detail=error)
+    
+    return TokenResponse(access_token=token)
+
+@router.post("/login", response_model=TokenResponse)
+async def login(user_data: UserLogin):
+    """
+    Authenticate a user and return access token.
+    """
+    token, error = auth_service.authenticate_user(
+        email=user_data.email,
+        password=user_data.password
+    )
+    
+    if error:
+        raise HTTPException(status_code=401, detail=error)
+    
+    return TokenResponse(access_token=token)
+
+@router.get("/validate")
+async def validate_token(token: str):
+    """
+    Validate an authentication token.
+    """
+    user, error = auth_service.validate_token(token)
+    
+    if error:
+        raise HTTPException(status_code=401, detail=error)
+    
+    return {"valid": True, "user_id": user.id}
+
+# Existing User Routes
 @router.post("/users", response_model=UserResponse)
 def register_user(user: UserCreate):
     """
-    Register a new user.
+    Register a new user (legacy endpoint).
     """
     saved_user = user_use_cases.register_user(user.name, user.email)
     if not saved_user:

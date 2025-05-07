@@ -23,13 +23,15 @@ class UserRepositoryImpl(UserRepository):
                     if db_user:
                         db_user.name = user.name
                         db_user.email = user.email
+                        db_user.password_hash = user.password_hash
                     else:
                         return None
                 else:
                     # Create new user
                     db_user = UserModel(
                         name=user.name,
-                        email=user.email
+                        email=user.email,
+                        password_hash=user.password_hash
                     )
                     session.add(db_user)
                 
@@ -40,7 +42,8 @@ class UserRepositoryImpl(UserRepository):
                 return User(
                     id=db_user.id,
                     name=db_user.name,
-                    email=db_user.email
+                    email=db_user.email,
+                    password_hash=db_user.password_hash
                 )
             except IntegrityError:
                 session.rollback()
@@ -63,7 +66,8 @@ class UserRepositoryImpl(UserRepository):
                 return User(
                     id=db_user.id,
                     name=db_user.name,
-                    email=db_user.email
+                    email=db_user.email,
+                    password_hash=db_user.password_hash
                 )
             return None
     
@@ -83,6 +87,7 @@ class UserRepositoryImpl(UserRepository):
                 return User(
                     id=db_user.id,
                     name=db_user.name,
-                    email=db_user.email
+                    email=db_user.email,
+                    password_hash=db_user.password_hash
                 )
             return None

@@ -3,6 +3,7 @@ import torch
 import os
 import whisper
 import warnings
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -41,15 +42,43 @@ def download_whisper_model(model_name: str, save_dir: Path):
         print(f"Error downloading Whisper model: {e}")
         raise
 
+def download_qwen_model(save_dir: Path):
+    """Загрузка модели Qwen"""
+    save_dir.mkdir(parents=True, exist_ok=True)
+    
+    try:
+        print("Downloading Qwen model...")
+        model = AutoModelForCausalLM.from_pretrained(
+            "Qwen/Qwen3-0.6B",
+            device_map="auto",
+            trust_remote_code=True
+        )
+        tokenizer = AutoTokenizer.from_pretrained(
+            "Qwen/Qwen3-0.6B",
+            trust_remote_code=True
+        )
+        
+        # Сохраняем модель и токенизатор
+        model.save_pretrained(save_dir)
+        tokenizer.save_pretrained(save_dir)
+        
+        print(f"Qwen model downloaded to {save_dir}")
+        return model, tokenizer
+    except Exception as e:
+        print(f"Error downloading Qwen model: {e}")
+        raise
+
 if __name__ == "__main__":
     # Создаем директории если их нет
     Path('models/silero').mkdir(parents=True, exist_ok=True)
     Path('models/whisper').mkdir(parents=True, exist_ok=True)
+    Path('models/qwen').mkdir(parents=True, exist_ok=True)
     
     print("Starting model downloads...")
     
     # Скачиваем модели
     download_silero_model(Path('models/silero'))
     download_whisper_model('small', Path('models/whisper'))
+    download_qwen_model(Path('models/qwen'))
     
     print("All models downloaded successfully!")

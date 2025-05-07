@@ -14,11 +14,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application
 COPY . .
 
-# Create directory for models if it doesn't exist
-RUN mkdir -p models/silero models/whisper
-
 # Download models
 RUN python scripts/download_models.py
+
+# Set PYTHONPATH to include the current directory
+ENV PYTHONPATH=/app
 
 # Expose port
 EXPOSE 8000
