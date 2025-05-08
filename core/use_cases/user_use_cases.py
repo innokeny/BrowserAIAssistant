@@ -91,3 +91,54 @@ class UserUseCases:
             error_message=error_message,
             processing_time=processing_time
         )
+
+    def update_user(self, user):
+        """
+        Update a user's profile.
+        
+        Args:
+            user: User entity with updated information
+            
+        Returns:
+            Updated user entity or None if update failed
+        """
+        return self.user_repository.save(user)
+    
+    def get_user_preferences(self, user_id: int):
+        """
+        Get user preferences.
+        
+        Args:
+            user_id: ID of the user
+            
+        Returns:
+            User preferences or None if not found
+        """
+        return self.user_repository.get_preferences(user_id)
+    
+    def update_user_preferences(self, user_id: int, preferences):
+        """
+        Update user preferences.
+        
+        Args:
+            user_id: ID of the user
+            preferences: New preferences
+            
+        Returns:
+            Updated preferences or None if failed
+        """
+        return self.user_repository.update_preferences(user_id, preferences)
+    
+    def get_user_history(self, user_id, limit=10, offset=0):
+        """
+        Get a user's request history.
+        
+        Args:
+            user_id: ID of the user
+            limit: Maximum number of records to return
+            offset: Number of records to skip
+            
+        Returns:
+            List of request history objects
+        """
+        return self.request_history_repository.get_user_history(user_id, limit, offset)

@@ -7,7 +7,14 @@ from sqlalchemy.exc import OperationalError
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from infrastructure.db.db_connection import engine, Base
-from infrastructure.db.models import User, Quota, RequestHistory
+from infrastructure.db.models import (
+    User, 
+    Quota, 
+    RequestHistory, 
+    UserPreferences,
+    UserCredits,
+    CreditTransaction
+)
 
 def init_db():
     """Initialize the database by creating all tables."""

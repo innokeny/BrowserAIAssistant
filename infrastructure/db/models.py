@@ -16,6 +16,20 @@ class User(Base):
     # Relationships
     quotas = relationship("Quota", back_populates="user")
     request_history = relationship("RequestHistory", back_populates="user")
+    preferences = relationship("UserPreferences", back_populates="user", uselist=False)
+
+class UserPreferences(Base):
+    __tablename__ = "user_preferences"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
+    theme = Column(String(20), default="light", nullable=False)
+    language = Column(String(10), default="en", nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    user = relationship("User", back_populates="preferences")
 
 class Quota(Base):
     __tablename__ = "quotas"
@@ -46,4 +60,24 @@ class RequestHistory(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
-    user = relationship("User", back_populates="request_history") 
+    user = relationship("User", back_populates="request_history")
+
+class UserCredits(Base):
+    __tablename__ = 'user_credits'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    balance = Column(Integer, nullable=False, default=100)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class CreditTransaction(Base):
+    __tablename__ = 'credit_transactions'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    amount = Column(Integer, nullable=False)  # Positive for credits added, negative for spent
+    transaction_type = Column(String(50), nullable=False)  # 'initial', 'scenario_usage', 'manual'
+    scenario_type = Column(String(50), nullable=True)  # For scenario usage tracking
+    description = Column(String(255), nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow) 

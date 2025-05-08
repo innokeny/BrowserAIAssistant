@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Header
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List, Dict, Any
 from core.use_cases.user_use_cases import UserUseCases
@@ -47,13 +47,30 @@ class RequestHistoryResponse(BaseModel):
     processing_time: Optional[int]
     created_at: str
 
+class UserPreferences(BaseModel):
+    theme: str = "light"
+    language: str = "en"
+
+# Authentication dependency
+async def get_current_user(authorization: str = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+    
+    token = authorization.split(" ")[1]
+    user, error = auth_service.validate_token(token)
+    
+    if error:
+        raise HTTPException(status_code=401, detail=error)
+    
+    return user
+
 # Authentication Routes
 @router.post("/register", response_model=TokenResponse)
 async def register(user_data: UserRegistration):
     """
     Register a new user with authentication.
     """
-    token, error = auth_service.register_user(
+    token_data, error = auth_service.register_user(
         name=user_data.name,
         email=user_data.email,
         password=user_data.password
@@ -62,14 +79,14 @@ async def register(user_data: UserRegistration):
     if error:
         raise HTTPException(status_code=400, detail=error)
     
-    return TokenResponse(access_token=token)
+    return token_data
 
 @router.post("/login", response_model=TokenResponse)
 async def login(user_data: UserLogin):
     """
     Authenticate a user and return access token.
     """
-    token, error = auth_service.authenticate_user(
+    token_data, error = auth_service.authenticate_user(
         email=user_data.email,
         password=user_data.password
     )
@@ -77,19 +94,38 @@ async def login(user_data: UserLogin):
     if error:
         raise HTTPException(status_code=401, detail=error)
     
-    return TokenResponse(access_token=token)
+    return token_data
 
-@router.get("/validate")
-async def validate_token(token: str):
+@router.get("/users/me", response_model=UserResponse)
+async def get_current_user_profile(current_user: User = Depends(get_current_user)):
     """
-    Validate an authentication token.
+    Get current user profile.
     """
-    user, error = auth_service.validate_token(token)
-    
-    if error:
-        raise HTTPException(status_code=401, detail=error)
-    
-    return {"valid": True, "user_id": user.id}
+    return current_user
+
+@router.get("/users/me/preferences", response_model=UserPreferences)
+async def get_user_preferences(current_user: User = Depends(get_current_user)):
+    """
+    Get user preferences.
+    """
+    preferences = user_use_cases.get_user_preferences(current_user.id)
+    if not preferences:
+        # Return default preferences
+        return UserPreferences()
+    return preferences
+
+@router.put("/users/me/preferences", response_model=UserPreferences)
+async def update_user_preferences(
+    preferences: UserPreferences,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Update user preferences.
+    """
+    updated_preferences = user_use_cases.update_user_preferences(current_user.id, preferences)
+    if not updated_preferences:
+        raise HTTPException(status_code=400, detail="Failed to update preferences")
+    return updated_preferences
 
 # Existing User Routes
 @router.post("/users", response_model=UserResponse)

@@ -63,7 +63,7 @@ class AuthService:
             str(user.id)
         )
 
-        return access_token, None
+        return {"access_token": access_token, "token_type": "bearer"}, None
 
     def authenticate_user(self, email: str, password: str):
         user = self.user_repository.get_by_email(email)
@@ -85,7 +85,7 @@ class AuthService:
             str(user.id)
         )
 
-        return access_token, None
+        return {"access_token": access_token, "token_type": "bearer"}, None
 
     def validate_token(self, token: str):
         try:

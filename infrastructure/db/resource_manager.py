@@ -1,11 +1,19 @@
 from infrastructure.db.quota_repository_impl import QuotaRepositoryImpl
 from infrastructure.db.request_history_repository_impl import RequestHistoryRepositoryImpl
+from infrastructure.db.credit_repository_impl import CreditRepositoryImpl
 import time
 
 class ResourceManager:
     def __init__(self):
         self.quota_repository = QuotaRepositoryImpl()
         self.request_history_repository = RequestHistoryRepositoryImpl()
+        self.credit_repository = CreditRepositoryImpl()
+        
+        # Define credit costs for different scenarios
+        self.credit_costs = {
+            'scenario_basic': 1,  # 1 credit per basic scenario usage
+            'scenario_llm': 2,    # 2 credits per LLM scenario usage
+        }
     
     def check_quota(self, user_id, resource_type):
         """
@@ -13,11 +21,19 @@ class ResourceManager:
         
         Args:
             user_id: ID of the user
-            resource_type: Type of resource (e.g., "stt", "tts", "llm")
+            resource_type: Type of resource (e.g., "scenario_basic", "scenario_llm")
             
         Returns:
             Tuple of (has_quota, quota_data)
         """
+        # First check credit balance
+        credit_balance = self.credit_repository.get_user_balance(user_id)
+        required_credits = self.credit_costs.get(resource_type, 1)
+        
+        if credit_balance < required_credits:
+            return False, {"error": "Insufficient credits"}
+        
+        # Then check quota
         quota_data = self.quota_repository.get_user_quota(user_id, resource_type)
         
         if not quota_data:
@@ -45,7 +61,7 @@ class ResourceManager:
         
         Args:
             user_id: ID of the user
-            resource_type: Type of resource (e.g., "stt", "tts", "llm")
+            resource_type: Type of resource (e.g., "scenario_basic", "scenario_llm")
             request_data: Input data (truncated if needed)
             response_data: Response data (truncated if needed)
             status: Status of the request (e.g., "success", "error")
@@ -66,9 +82,22 @@ class ResourceManager:
             processing_time=processing_time
         )
         
-        # Update quota usage if request was successful
+        # Update quota usage and spend credits if request was successful
         quota_data = None
         if status == "success":
+            # Spend credits
+            required_credits = self.credit_costs.get(resource_type, 1)
+            success, result = self.credit_repository.spend_credits(
+                user_id=user_id,
+                amount=required_credits,
+                scenario_type=resource_type,
+                description=f"Used {resource_type} scenario"
+            )
+            
+            if not success:
+                return request_history, {"error": result}
+            
+            # Update quota
             quota_data = self.quota_repository.update_usage(user_id, resource_type)
         
         return request_history, quota_data
@@ -84,9 +113,8 @@ class ResourceManager:
             List of created quota objects
         """
         default_quotas = [
-            {"resource_type": "stt", "limit": 100},
-            {"resource_type": "tts", "limit": 100},
-            {"resource_type": "llm", "limit": 50}
+            {"resource_type": "scenario_basic", "limit": 1000},
+            {"resource_type": "scenario_llm", "limit": 500}
         ]
         
         created_quotas = []
