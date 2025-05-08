@@ -24,4 +24,4 @@ ENV PYTHONPATH=/app
 EXPOSE 8000
 
 # Command to run the application
-CMD ["python", "-m", "uvicorn", "infrastructure.web.fastapi_app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"] 
+CMD ["python", "-m", "uvicorn", "infrastructure.web.app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"] 
