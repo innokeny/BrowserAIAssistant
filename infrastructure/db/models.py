@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Boolean, Float
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .db_connection import Base
@@ -17,6 +17,7 @@ class User(Base):
     quotas = relationship("Quota", back_populates="user")
     request_history = relationship("RequestHistory", back_populates="user")
     preferences = relationship("UserPreferences", back_populates="user", uselist=False)
+    qwen_history = relationship("QwenHistory", back_populates="user")
 
 class UserPreferences(Base):
     __tablename__ = "user_preferences"
@@ -81,3 +82,15 @@ class CreditTransaction(Base):
     scenario_type = Column(String(50), nullable=True)  # For scenario usage tracking
     description = Column(String(255), nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow) 
+
+class QwenHistory(Base):
+    __tablename__ = "qwen_history"
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    prompt = Column(Text, nullable=False)
+    response = Column(Text, nullable=False)
+    tokens_used = Column(Integer, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User", back_populates="qwen_history") 

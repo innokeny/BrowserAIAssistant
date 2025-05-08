@@ -1,12 +1,13 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from passlib.context import CryptContext
 from infrastructure.db.db_connection import get_redis_client
 from infrastructure.db.user_repository_impl import UserRepositoryImpl
 from infrastructure.db.resource_manager import ResourceManager
+from core.entities.user import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -29,11 +30,19 @@ class AuthService:
     def create_access_token(self, data: dict, expires_delta: Optional[timedelta] = None):
         to_encode = data.copy()
         if expires_delta:
-            expire = datetime.utcnow() + expires_delta
+            expire = datetime.now(timezone.utc) + expires_delta
         else:
-            expire = datetime.utcnow() + timedelta(minutes=15)
+            expire = datetime.now(timezone.utc) + timedelta(minutes=15)
         to_encode.update({"exp": expire})
         encoded_jwt = jwt.encode(to_encode, self.SECRET_KEY, algorithm=self.ALGORITHM)
+        
+        # Store token in Redis
+        self.redis_client.setex(
+            f"token:{encoded_jwt}",
+            int(expires_delta.total_seconds()) if expires_delta else 900,  # 15 minutes in seconds
+            str(data.get("user_id", ""))
+        )
+        
         return encoded_jwt
 
     def register_user(self, name: str, email: str, password: str):
@@ -43,7 +52,6 @@ class AuthService:
             return None, "Email already registered"
 
         # Create new user
-        from core.entities.user import User
         user = User(
             id=None,  # ID will be assigned by the database
             name=name,
@@ -61,14 +69,7 @@ class AuthService:
 
         # Generate access token
         access_token = self.create_access_token(
-            data={"sub": user.email, "user_id": user.id}
-        )
-
-        # Store token in Redis with expiration
-        self.redis_client.setex(
-            f"token:{access_token}",
-            self.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-            str(user.id)
+            data={"sub": str(user.id), "user_id": user.id, "email": user.email}
         )
 
         return {"access_token": access_token, "token_type": "bearer"}, None
@@ -83,28 +84,28 @@ class AuthService:
 
         # Generate access token
         access_token = self.create_access_token(
-            data={"sub": user.email, "user_id": user.id}
-        )
-
-        # Store token in Redis with expiration
-        self.redis_client.setex(
-            f"token:{access_token}",
-            self.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-            str(user.id)
+            data={"sub": str(user.id), "user_id": user.id, "email": user.email}
         )
 
         return {"access_token": access_token, "token_type": "bearer"}, None
 
     def validate_token(self, token: str):
         try:
-            # Check if token exists in Redis
-            if not self.redis_client.exists(f"token:{token}"):
+            # First try to decode token to check expiration
+            try:
+                payload = jwt.decode(token, self.SECRET_KEY, algorithms=[self.ALGORITHM])
+            except jwt.ExpiredSignatureError:
+                # Remove expired token from Redis
+                self.redis_client.delete(f"token:{token}")
+                return None, "Token has expired"
+            except jwt.JWTError:
                 return None, "Invalid token"
 
-            # Decode token
-            payload = jwt.decode(token, self.SECRET_KEY, algorithms=[self.ALGORITHM])
+            # Then check if token exists in Redis
+            if not self.redis_client.exists(f"token:{token}"):
+                return None, "Token has expired"
+
             user_id = payload.get("user_id")
-            
             if not user_id:
                 return None, "Invalid token payload"
 
@@ -115,9 +116,7 @@ class AuthService:
 
             return user, None
 
-        except jwt.ExpiredSignatureError:
-            return None, "Token has expired"
-        except jwt.JWTError:
+        except Exception:
             return None, "Invalid token"
 
     async def get_current_user_id(self, token: str = Depends(oauth2_scheme)) -> int:
@@ -128,9 +127,25 @@ class AuthService:
         )
         try:
             payload = jwt.decode(token, self.SECRET_KEY, algorithms=[self.ALGORITHM])
-            user_id: str = payload.get("sub")
+            user_id = payload.get("user_id")
             if user_id is None:
                 raise credentials_exception
             return int(user_id)
         except JWTError:
-            raise credentials_exception 
+            raise credentials_exception
+
+# Create a singleton instance
+auth_service = AuthService()
+
+async def get_current_user(authorization: str = Header(None)):
+    """Get the current authenticated user from the authorization header"""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    token = authorization.split(" ")[1]
+    user, error = auth_service.validate_token(token)
+    
+    if error:
+        raise HTTPException(status_code=401, detail=error)
+    
+    return user 

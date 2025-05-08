@@ -1,6 +1,8 @@
 from infrastructure.db.db_connection import get_db_session
-from infrastructure.db.models import RequestHistory as RequestHistoryModel
-from datetime import datetime
+from infrastructure.db.models import RequestHistory as RequestHistoryModel, CreditTransaction
+from datetime import datetime, timedelta
+from typing import List, Optional, Dict, Any
+from sqlalchemy import func
 
 class RequestHistoryRepositoryImpl:
     def save_request(self, user_id, request_type, request_data=None, response_data=None, 
@@ -52,33 +54,109 @@ class RequestHistoryRepositoryImpl:
                 "created_at": db_request.created_at.isoformat() if db_request.created_at else None
             }
     
-    def get_user_history(self, user_id, limit=10, offset=0):
-        """
-        Get a user's request history.
-        
-        Args:
-            user_id: ID of the user
-            limit: Maximum number of records to return
-            offset: Number of records to skip
-            
-        Returns:
-            List of request history objects
-        """
+    def get_user_history(
+        self,
+        user_id: int,
+        limit: int = 50,
+        offset: int = 0,
+        request_type: Optional[str] = None,
+        status: Optional[str] = None,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None
+    ) -> List[Dict[str, Any]]:
+        """Get user request history with optional filters"""
         with get_db_session() as session:
-            db_requests = session.query(RequestHistoryModel).filter(
-                RequestHistoryModel.user_id == user_id
-            ).order_by(
-                RequestHistoryModel.created_at.desc()
-            ).offset(offset).limit(limit).all()
+            query = session.query(RequestHistoryModel).filter(RequestHistoryModel.user_id == user_id)
             
-            return [{
-                "id": req.id,
-                "user_id": req.user_id,
-                "request_type": req.request_type,
-                "status": req.status,
-                "processing_time": req.processing_time,
-                "created_at": req.created_at.isoformat() if req.created_at else None
-            } for req in db_requests]
+            if request_type:
+                query = query.filter(RequestHistoryModel.request_type == request_type)
+            if status:
+                query = query.filter(RequestHistoryModel.status == status)
+            if start_date:
+                query = query.filter(RequestHistoryModel.created_at >= start_date)
+            if end_date:
+                query = query.filter(RequestHistoryModel.created_at <= end_date)
+            
+            history = query.order_by(RequestHistoryModel.created_at.desc()).offset(offset).limit(limit).all()
+            
+            return [
+                {
+                    "id": h.id,
+                    "request_type": h.request_type,
+                    "status": h.status,
+                    "processing_time": h.processing_time,
+                    "created_at": h.created_at.isoformat()
+                }
+                for h in history
+            ]
+
+    def get_usage_statistics(self, user_id: int) -> Dict[str, Any]:
+        """Get usage statistics for a user"""
+        with get_db_session() as session:
+            # Get total requests
+            total_requests = session.query(func.count(RequestHistoryModel.id))\
+                .filter(RequestHistoryModel.user_id == user_id).scalar()
+            
+            # Get success rate and counts
+            success_count = session.query(func.count(RequestHistoryModel.id))\
+                .filter(RequestHistoryModel.user_id == user_id, RequestHistoryModel.status == "success").scalar()
+            failed_count = total_requests - success_count
+            success_rate = (success_count / total_requests * 100) if total_requests > 0 else 0
+            
+            # Get average processing time
+            avg_processing_time = session.query(func.avg(RequestHistoryModel.processing_time))\
+                .filter(RequestHistoryModel.user_id == user_id).scalar() or 0
+            
+            # Get requests by type
+            requests_by_type = {}
+            type_counts = session.query(
+                RequestHistoryModel.request_type,
+                func.count(RequestHistoryModel.id)
+            ).filter(RequestHistoryModel.user_id == user_id)\
+             .group_by(RequestHistoryModel.request_type).all()
+            
+            for request_type, count in type_counts:
+                requests_by_type[request_type] = count
+            
+            return {
+                "total_requests": total_requests,
+                "successful_requests": success_count,
+                "failed_requests": failed_count,
+                "success_rate": success_rate,
+                "average_processing_time": avg_processing_time,
+                "requests_by_type": requests_by_type
+            }
+
+    def get_credit_statistics(self, user_id: int) -> Dict[str, Any]:
+        """Get credit statistics for a user"""
+        with get_db_session() as session:
+            # Get current balance
+            current_balance = session.query(func.sum(CreditTransaction.amount))\
+                .filter(CreditTransaction.user_id == user_id).scalar() or 0
+            
+            # Get total earned and spent
+            earned = session.query(func.sum(CreditTransaction.amount))\
+                .filter(CreditTransaction.user_id == user_id, CreditTransaction.amount > 0).scalar() or 0
+            spent = abs(session.query(func.sum(CreditTransaction.amount))\
+                .filter(CreditTransaction.user_id == user_id, CreditTransaction.amount < 0).scalar() or 0)
+            
+            # Get transactions by type
+            transactions_by_type = {}
+            type_counts = session.query(
+                CreditTransaction.transaction_type,
+                func.count(CreditTransaction.id)
+            ).filter(CreditTransaction.user_id == user_id)\
+             .group_by(CreditTransaction.transaction_type).all()
+            
+            for transaction_type, count in type_counts:
+                transactions_by_type[transaction_type] = count
+            
+            return {
+                "current_balance": current_balance,
+                "total_earned": earned,
+                "total_spent": spent,
+                "transactions_by_type": transactions_by_type
+            }
     
     def get_request_details(self, request_id):
         """

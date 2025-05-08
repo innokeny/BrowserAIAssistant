@@ -1,58 +1,32 @@
 from infrastructure.db.db_connection import get_db_session, get_redis_client
 from infrastructure.db.models import Quota as QuotaModel
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
+from typing import List, Optional, Dict, Any
 
 class QuotaRepositoryImpl:
     def __init__(self):
         self.redis_client = get_redis_client()
     
-    def get_user_quota(self, user_id, resource_type):
-        """
-        Get a user's quota for a specific resource type.
-        
-        Args:
-            user_id: ID of the user
-            resource_type: Type of resource (e.g., "stt", "tts", "llm")
-            
-        Returns:
-            Quota object or None if not found
-        """
-        # Try to get from Redis first
-        cache_key = f"quota:{user_id}:{resource_type}"
-        cached_quota = self.redis_client.get(cache_key)
-        
-        if cached_quota:
-            return json.loads(cached_quota)
-        
-        # If not in Redis, get from database
+    def get_user_quota(self, user_id: int, resource_type: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get user quotas, optionally filtered by resource type"""
         with get_db_session() as session:
-            db_quota = session.query(QuotaModel).filter(
-                QuotaModel.user_id == user_id,
-                QuotaModel.resource_type == resource_type
-            ).first()
+            query = session.query(QuotaModel).filter(QuotaModel.user_id == user_id)
             
-            if db_quota:
-                # Convert to dict
-                quota_data = {
-                    "id": db_quota.id,
-                    "user_id": db_quota.user_id,
-                    "resource_type": db_quota.resource_type,
-                    "limit": db_quota.limit,
-                    "current_usage": db_quota.current_usage,
-                    "reset_date": db_quota.reset_date.isoformat() if db_quota.reset_date else None
+            if resource_type:
+                query = query.filter(QuotaModel.resource_type == resource_type)
+            
+            quotas = query.all()
+            
+            return [
+                {
+                    "resource_type": q.resource_type,
+                    "limit": q.limit,
+                    "current_usage": q.current_usage,
+                    "reset_date": q.reset_date.isoformat() if q.reset_date else None
                 }
-                
-                # Cache in Redis for 5 minutes
-                self.redis_client.setex(
-                    cache_key,
-                    300,  # 5 minutes
-                    json.dumps(quota_data)
-                )
-                
-                return quota_data
-            
-            return None
+                for q in quotas
+            ]
     
     def update_usage(self, user_id, resource_type, increment=1):
         """
@@ -74,11 +48,12 @@ class QuotaRepositoryImpl:
             
             if db_quota:
                 # Check if quota has expired
-                if db_quota.reset_date and db_quota.reset_date < datetime.utcnow():
+                now = datetime.now(timezone.utc)
+                if db_quota.reset_date and db_quota.reset_date.astimezone(timezone.utc) < now:
                     # Reset the quota
                     db_quota.current_usage = increment
                     # Set new reset date (e.g., next month)
-                    db_quota.reset_date = datetime.utcnow() + timedelta(days=30)
+                    db_quota.reset_date = now + timedelta(days=30)
                 else:
                     # Increment usage
                     db_quota.current_usage += increment
@@ -94,7 +69,7 @@ class QuotaRepositoryImpl:
                     "resource_type": db_quota.resource_type,
                     "limit": db_quota.limit,
                     "current_usage": db_quota.current_usage,
-                    "reset_date": db_quota.reset_date.isoformat() if db_quota.reset_date else None
+                    "reset_date": db_quota.reset_date.astimezone(timezone.utc).isoformat() if db_quota.reset_date else None
                 }
                 
                 self.redis_client.setex(
@@ -121,7 +96,7 @@ class QuotaRepositoryImpl:
             Created quota object
         """
         if reset_date is None:
-            reset_date = datetime.utcnow() + timedelta(days=30)
+            reset_date = datetime.now(timezone.utc) + timedelta(days=30)
         
         with get_db_session() as session:
             db_quota = QuotaModel(
@@ -144,7 +119,7 @@ class QuotaRepositoryImpl:
                 "resource_type": db_quota.resource_type,
                 "limit": db_quota.limit,
                 "current_usage": db_quota.current_usage,
-                "reset_date": db_quota.reset_date.isoformat() if db_quota.reset_date else None
+                "reset_date": db_quota.reset_date.astimezone(timezone.utc).isoformat() if db_quota.reset_date else None
             }
             
             self.redis_client.setex(
@@ -153,4 +128,35 @@ class QuotaRepositoryImpl:
                 json.dumps(quota_data)
             )
             
-            return quota_data 
+            return quota_data
+
+    def update_quota_usage(self, user_id: int, resource_type: str, usage: int) -> bool:
+        """Update quota usage for a user"""
+        with get_db_session() as session:
+            quota = session.query(QuotaModel).filter(
+                QuotaModel.user_id == user_id,
+                QuotaModel.resource_type == resource_type
+            ).first()
+            
+            if not quota:
+                return False
+            
+            quota.current_usage = usage
+            session.commit()
+            return True
+
+    def reset_quota(self, user_id: int, resource_type: str) -> bool:
+        """Reset quota usage for a user"""
+        with get_db_session() as session:
+            quota = session.query(QuotaModel).filter(
+                QuotaModel.user_id == user_id,
+                QuotaModel.resource_type == resource_type
+            ).first()
+            
+            if not quota:
+                return False
+            
+            quota.current_usage = 0
+            quota.reset_date = datetime.now()
+            session.commit()
+            return True 

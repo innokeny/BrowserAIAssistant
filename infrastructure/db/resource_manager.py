@@ -2,6 +2,7 @@ from infrastructure.db.quota_repository_impl import QuotaRepositoryImpl
 from infrastructure.db.request_history_repository_impl import RequestHistoryRepositoryImpl
 from infrastructure.db.credit_repository_impl import CreditRepositoryImpl
 import time
+from datetime import datetime, timezone
 
 class ResourceManager:
     def __init__(self):
@@ -34,25 +35,28 @@ class ResourceManager:
             return False, {"error": "Insufficient credits"}
         
         # Then check quota
-        quota_data = self.quota_repository.get_user_quota(user_id, resource_type)
+        quotas = self.quota_repository.get_user_quota(user_id, resource_type)
         
-        if not quota_data:
+        if not quotas:
             # No quota found, assume unlimited
             return True, None
         
+        quota = quotas[0]  # Get first quota since we filtered by resource_type
+        now = datetime.now(timezone.utc)
+        
         # Check if quota has expired
-        if quota_data["reset_date"]:
-            reset_date = time.mktime(time.strptime(quota_data["reset_date"], "%Y-%m-%dT%H:%M:%S"))
-            if time.time() > reset_date:
-                # Quota has expired, reset it
-                quota_data = self.quota_repository.update_usage(user_id, resource_type, 0)
-                return True, quota_data
+        if quota["reset_date"]:
+            reset_date = datetime.fromisoformat(quota["reset_date"].replace('Z', '+00:00'))
+            if reset_date.astimezone(timezone.utc) < now:
+                # Reset quota
+                self.quota_repository.reset_quota(user_id, resource_type)
+                return True, quota
         
-        # Check if user has quota available
-        if quota_data["current_usage"] < quota_data["limit"]:
-            return True, quota_data
+        # Check if quota is exceeded
+        if quota["current_usage"] >= quota["limit"]:
+            return False, {"error": "Quota exceeded"}
         
-        return False, quota_data
+        return True, quota
     
     def track_usage(self, user_id, resource_type, request_data=None, response_data=None, 
                    status="success", error_message=None, processing_time=None):
@@ -81,6 +85,10 @@ class ResourceManager:
             error_message=error_message,
             processing_time=processing_time
         )
+        
+        # Add error_message to request_history if it's not there
+        if isinstance(request_history, dict) and error_message and "error_message" not in request_history:
+            request_history["error_message"] = error_message
         
         # Update quota usage and spend credits if request was successful
         quota_data = None

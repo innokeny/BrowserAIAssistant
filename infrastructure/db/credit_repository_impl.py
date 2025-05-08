@@ -2,7 +2,7 @@ from infrastructure.db.db_connection import get_db_session, get_redis_client
 from infrastructure.db.models import UserCredits, CreditTransaction
 from datetime import datetime, timedelta
 import json
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from sqlalchemy import func, desc
 
 class CreditRepositoryImpl:
@@ -97,17 +97,24 @@ class CreditRepositoryImpl:
             
             return True, total_balance
     
-    def get_transaction_history(self, user_id: int, limit: int = 50) -> List[dict]:
+    def get_transaction_history(
+        self,
+        user_id: int,
+        limit: int = 50,
+        offset: int = 0
+    ) -> List[Dict[str, Any]]:
         """Get user's transaction history"""
         with get_db_session() as session:
             transactions = session.query(CreditTransaction)\
                 .filter(CreditTransaction.user_id == user_id)\
                 .order_by(desc(CreditTransaction.created_at))\
+                .offset(offset)\
                 .limit(limit)\
                 .all()
             
             return [{
                 "id": t.id,
+                "user_id": t.user_id,
                 "amount": t.amount,
                 "transaction_type": t.transaction_type,
                 "scenario_type": t.scenario_type,
@@ -115,24 +122,37 @@ class CreditRepositoryImpl:
                 "created_at": t.created_at.isoformat()
             } for t in transactions]
 
-    def get_scenario_usage_stats(self, user_id: int, start_date: datetime, end_date: datetime) -> List[dict]:
+    def get_scenario_usage_stats(
+        self,
+        user_id: int,
+        start_date: datetime,
+        end_date: datetime
+    ) -> List[Dict[str, Any]]:
+        """Get usage statistics for different scenarios"""
         with get_db_session() as session:
-            stats = session.query(
-                CreditTransaction.scenario_type,
-                func.sum(CreditTransaction.amount).label('total_usage'),
-                func.count(CreditTransaction.id).label('usage_count')
-            ).filter(
+            # Get all transactions within date range
+            transactions = session.query(CreditTransaction).filter(
                 CreditTransaction.user_id == user_id,
-                CreditTransaction.transaction_type == 'scenario_usage',
-                CreditTransaction.created_at.between(start_date, end_date)
-            ).group_by(CreditTransaction.scenario_type).all()
+                CreditTransaction.created_at >= start_date,
+                CreditTransaction.created_at <= end_date,
+                CreditTransaction.amount < 0  # Only count spending transactions
+            ).all()
 
-            return [{
-                "scenario_type": stat.scenario_type,
-                "total_usage": abs(stat.total_usage),
-                "credit_cost": abs(stat.total_usage),
-                "usage_count": stat.usage_count
-            } for stat in stats]
+            # Group by scenario type
+            usage_by_type = {}
+            for t in transactions:
+                scenario_type = t.scenario_type or t.transaction_type
+                if scenario_type not in usage_by_type:
+                    usage_by_type[scenario_type] = {
+                        "scenario_type": scenario_type,
+                        "total_usage": 0,
+                        "usage_count": 0
+                    }
+                usage_by_type[scenario_type]["total_usage"] += abs(t.amount)
+                usage_by_type[scenario_type]["usage_count"] += 1
+
+            # Convert to list
+            return list(usage_by_type.values())
 
     def get_period_stats(self, user_id: int, period: str) -> List[dict]:
         with get_db_session() as session:
@@ -187,3 +207,48 @@ class CreditRepositoryImpl:
                 })
 
             return stats 
+
+    def create_transaction(
+        self,
+        user_id: int,
+        amount: int,
+        transaction_type: str,
+        description: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Create a new credit transaction"""
+        with get_db_session() as session:
+            # Get current balance
+            current_balance = self.get_user_balance(user_id)
+            
+            # For negative amounts, check if user has enough balance
+            if amount < 0 and current_balance + amount < 0:
+                raise ValueError("Insufficient credit balance")
+            
+            # Create transaction
+            transaction = CreditTransaction(
+                user_id=user_id,
+                amount=amount,
+                transaction_type=transaction_type,
+                description=description,
+                created_at=datetime.now()
+            )
+            session.add(transaction)
+            session.commit()
+            session.refresh(transaction)
+            
+            # Calculate new balance
+            new_balance = current_balance + amount
+            
+            # Update cache
+            cache_key = f"credits:{user_id}"
+            self.redis_client.setex(cache_key, 300, str(new_balance))
+            
+            return {
+                "id": transaction.id,
+                "user_id": transaction.user_id,
+                "amount": transaction.amount,
+                "transaction_type": transaction.transaction_type,
+                "description": transaction.description,
+                "created_at": transaction.created_at.isoformat(),
+                "balance": new_balance
+            } 

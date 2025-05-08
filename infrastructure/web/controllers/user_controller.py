@@ -3,11 +3,13 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional, List, Dict, Any
 from core.use_cases.user_use_cases import UserUseCases
 from infrastructure.db.user_repository_impl import UserRepositoryImpl
+from infrastructure.db.request_history_repository_impl import RequestHistoryRepositoryImpl
 from infrastructure.web.auth_service import AuthService
 from core.entities.user import User
 
 router = APIRouter()
 user_repository = UserRepositoryImpl()
+request_history_repository = RequestHistoryRepositoryImpl()
 user_use_cases = UserUseCases(user_repository)
 auth_service = AuthService()
 
@@ -54,7 +56,7 @@ class UserPreferences(BaseModel):
 # Authentication dependency
 async def get_current_user(authorization: str = Header(None)):
     if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+        raise HTTPException(status_code=401, detail="Not authenticated")
     
     token = authorization.split(" ")[1]
     user, error = auth_service.validate_token(token)
@@ -101,7 +103,11 @@ async def get_current_user_profile(current_user: User = Depends(get_current_user
     """
     Get current user profile.
     """
-    return current_user
+    return {
+        "id": current_user.id,
+        "name": current_user.name,
+        "email": current_user.email
+    }
 
 @router.get("/users/me/preferences", response_model=UserPreferences)
 async def get_user_preferences(current_user: User = Depends(get_current_user)):
@@ -173,6 +179,9 @@ def get_user_history(user_id: int, limit: int = 10, offset: int = 0):
     """
     Get a user's request history.
     """
-    # This would be implemented in the user use cases
-    # For now, we'll return an empty list
-    return []
+    history = request_history_repository.get_user_history(
+        user_id=user_id,
+        limit=limit,
+        offset=offset
+    )
+    return history
