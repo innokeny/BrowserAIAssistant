@@ -19,4 +19,3 @@ build/
 models/
 .cursor/rules/project.mdc
 app.log
-TASKS.md
