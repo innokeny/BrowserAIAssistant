@@ -1,9 +1,14 @@
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
 from datetime import datetime, timedelta
-import jwt
+from typing import Optional
 from passlib.context import CryptContext
+from infrastructure.db.db_connection import get_redis_client
 from infrastructure.db.user_repository_impl import UserRepositoryImpl
 from infrastructure.db.resource_manager import ResourceManager
-from infrastructure.db.db_connection import get_redis_client
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 class AuthService:
     def __init__(self):
@@ -11,9 +16,9 @@ class AuthService:
         self.resource_manager = ResourceManager()
         self.redis_client = get_redis_client()
         self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        self.secret_key = "your-secret-key"  # In production, use environment variable
-        self.algorithm = "HS256"
-        self.access_token_expire_minutes = 30
+        self.SECRET_KEY = "your-secret-key"  # В продакшене использовать безопасный ключ
+        self.ALGORITHM = "HS256"
+        self.ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
     def verify_password(self, plain_password, hashed_password):
         return self.pwd_context.verify(plain_password, hashed_password)
@@ -21,11 +26,14 @@ class AuthService:
     def get_password_hash(self, password):
         return self.pwd_context.hash(password)
 
-    def create_access_token(self, data: dict):
+    def create_access_token(self, data: dict, expires_delta: Optional[timedelta] = None):
         to_encode = data.copy()
-        expire = datetime.utcnow() + timedelta(minutes=self.access_token_expire_minutes)
+        if expires_delta:
+            expire = datetime.utcnow() + expires_delta
+        else:
+            expire = datetime.utcnow() + timedelta(minutes=15)
         to_encode.update({"exp": expire})
-        encoded_jwt = jwt.encode(to_encode, self.secret_key, algorithm=self.algorithm)
+        encoded_jwt = jwt.encode(to_encode, self.SECRET_KEY, algorithm=self.ALGORITHM)
         return encoded_jwt
 
     def register_user(self, name: str, email: str, password: str):
@@ -59,7 +67,7 @@ class AuthService:
         # Store token in Redis with expiration
         self.redis_client.setex(
             f"token:{access_token}",
-            self.access_token_expire_minutes * 60,
+            self.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
             str(user.id)
         )
 
@@ -81,7 +89,7 @@ class AuthService:
         # Store token in Redis with expiration
         self.redis_client.setex(
             f"token:{access_token}",
-            self.access_token_expire_minutes * 60,
+            self.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
             str(user.id)
         )
 
@@ -94,7 +102,7 @@ class AuthService:
                 return None, "Invalid token"
 
             # Decode token
-            payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
+            payload = jwt.decode(token, self.SECRET_KEY, algorithms=[self.ALGORITHM])
             user_id = payload.get("user_id")
             
             if not user_id:
@@ -110,4 +118,19 @@ class AuthService:
         except jwt.ExpiredSignatureError:
             return None, "Token has expired"
         except jwt.JWTError:
-            return None, "Invalid token" 
+            return None, "Invalid token"
+
+    async def get_current_user_id(self, token: str = Depends(oauth2_scheme)) -> int:
+        credentials_exception = HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+        try:
+            payload = jwt.decode(token, self.SECRET_KEY, algorithms=[self.ALGORITHM])
+            user_id: str = payload.get("sub")
+            if user_id is None:
+                raise credentials_exception
+            return int(user_id)
+        except JWTError:
+            raise credentials_exception 

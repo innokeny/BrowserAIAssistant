@@ -60,7 +60,7 @@ class RequestHistory(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
-    user = relationship("User", back_populates="request_history")
+    user = relationship("User", back_populates="request_history") 
 
 class UserCredits(Base):
     __tablename__ = 'user_credits'
