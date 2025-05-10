@@ -19,7 +19,7 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(prefix="/api", tags=["qwen"])
 use_case = QwenUseCase()
 resource_manager = ResourceManager()
 qwen_repo = QwenRepositoryImpl()

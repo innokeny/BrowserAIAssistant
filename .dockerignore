@@ -35,3 +35,5 @@ docker-compose.yml
 # Models (will be downloaded during build)
 models/*
 !models/.gitkeep 
+
+.cursor

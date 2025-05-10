@@ -6,7 +6,7 @@ from infrastructure.web.auth_service import get_current_user
 from infrastructure.db.models import User
 from infrastructure.web.schemas.credit_schema import CreditBalance, CreditTransaction, CreditTransactionCreate, CreditTransactionResponse
 
-router = APIRouter()
+router = APIRouter(prefix="/api", tags=["credits"])
 credit_repository = CreditRepositoryImpl()
 
 class CreditTransactionResponse(BaseModel):

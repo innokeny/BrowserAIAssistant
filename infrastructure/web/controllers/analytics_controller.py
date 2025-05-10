@@ -7,7 +7,7 @@ from infrastructure.db.request_history_repository_impl import RequestHistoryRepo
 from infrastructure.web.auth_service import get_current_user
 from infrastructure.db.models import User
 
-router = APIRouter()
+router = APIRouter(prefix="/api", tags=["analytics"])
 quota_repository = QuotaRepositoryImpl()
 request_history_repository = RequestHistoryRepositoryImpl()
 

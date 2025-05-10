@@ -7,7 +7,7 @@ from infrastructure.db.request_history_repository_impl import RequestHistoryRepo
 from infrastructure.web.auth_service import AuthService
 from core.entities.user import User
 
-router = APIRouter()
+router = APIRouter(prefix="/api", tags=["users"])
 user_repository = UserRepositoryImpl()
 request_history_repository = RequestHistoryRepositoryImpl()
 user_use_cases = UserUseCases(user_repository)
