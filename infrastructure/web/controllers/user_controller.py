@@ -12,8 +12,7 @@ from infrastructure.web.schemas.user_schema import (
     UserResponse,
     TokenResponse,
     QuotaResponse,
-    RequestHistoryResponse,
-    UserPreferences
+    RequestHistoryResponse
 )
 from infrastructure.db.credit_repository_impl import CreditRepositoryImpl
 
@@ -107,29 +106,29 @@ async def get_current_user_profile(current_user: User = Depends(get_current_user
         "email": current_user.email
     }
 
-@router.get("/users/me/preferences", response_model=UserPreferences)
-async def get_user_preferences(current_user: User = Depends(get_current_user)):
-    """
-    Get user preferences.
-    """
-    preferences = user_use_cases.get_user_preferences(current_user.id)
-    if not preferences:
-        # Return default preferences
-        return UserPreferences()
-    return preferences
+# @router.get("/users/me/preferences", response_model=UserPreferences)
+# async def get_user_preferences(current_user: User = Depends(get_current_user)):
+#     """
+#     Get user preferences.
+#     """
+#     preferences = user_use_cases.get_user_preferences(current_user.id)
+#     if not preferences:
+#         # Return default preferences
+#         return UserPreferences()
+#     return preferences
 
-@router.put("/users/me/preferences", response_model=UserPreferences)
-async def update_user_preferences(
-    preferences: UserPreferences,
-    current_user: User = Depends(get_current_user)
-):
-    """
-    Update user preferences.
-    """
-    updated_preferences = user_use_cases.update_user_preferences(current_user.id, preferences)
-    if not updated_preferences:
-        raise HTTPException(status_code=400, detail="Failed to update preferences")
-    return updated_preferences
+# @router.put("/users/me/preferences", response_model=UserPreferences)
+# async def update_user_preferences(
+#     preferences: UserPreferences,
+#     current_user: User = Depends(get_current_user)
+# ):
+#     """
+#     Update user preferences.
+#     """
+#     updated_preferences = user_use_cases.update_user_preferences(current_user.id, preferences)
+#     if not updated_preferences:
+#         raise HTTPException(status_code=400, detail="Failed to update preferences")
+#     return updated_preferences
 
 # Existing User Routes
 @router.get("/users/{user_id}", response_model=UserResponse)

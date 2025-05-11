@@ -34,21 +34,8 @@ def wait_for_db(max_retries=5, retry_interval=2):
     print("Failed to connect to the database after multiple retries.")
     return False
 
-def drop_db():
-    """Drop all tables in the database."""
-    print("Dropping all database tables...")
-    try:
-        # Drop all tables
-        Base.metadata.drop_all(bind=engine)
-        print("All database tables dropped successfully!")
-    except Exception as e:
-        print(f"Error dropping database tables: {e}")
-        sys.exit(1)
-
 if __name__ == "__main__":
-    # Wait for the database to be ready
     if wait_for_db():
-        # drop_db()
         init_db()
     else:
         sys.exit(1) 

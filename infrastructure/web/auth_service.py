@@ -56,7 +56,8 @@ class AuthService:
             id=None,  # ID will be assigned by the database
             name=name,
             email=email,
-            password_hash=self.get_password_hash(password)
+            password_hash=self.get_password_hash(password),
+            user_role="user"  
         )
         
         # Save user with hashed password
@@ -145,4 +146,4 @@ async def get_current_user(authorization: str = Header(None)):
     if error:
         raise HTTPException(status_code=401, detail=error)
     
-    return user 
+    return user

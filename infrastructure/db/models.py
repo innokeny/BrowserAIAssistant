@@ -9,43 +9,26 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
     email = Column(String(100), unique=True, index=True, nullable=False)
-    password_hash = Column(String(255), nullable=False)  # Store hashed password
+    password_hash = Column(String(255), nullable=False)  
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    user_role = Column(String(20), nullable=False, default="user")
     
-    # Relationships
-    # quotas = relationship("Quota", back_populates="user")
     request_history = relationship("RequestHistory", back_populates="user")
-    preferences = relationship("UserPreferences", back_populates="user", uselist=False)
+    # preferences = relationship("UserPreferences", back_populates="user", uselist=False)
     qwen_history = relationship("QwenHistory", back_populates="user")
 
-class UserPreferences(Base):
-    __tablename__ = "user_preferences"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
-    theme = Column(String(20), default="light", nullable=False)
-    language = Column(String(10), default="en", nullable=False)
-    created_at = Column(DateTime, default=datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
-
-    # Relationships
-    user = relationship("User", back_populates="preferences")
-
-# class Quota(Base):
-#     __tablename__ = "quotas"
+# class UserPreferences(Base):
+#     __tablename__ = "user_preferences"
 
 #     id = Column(Integer, primary_key=True, index=True)
-#     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-#     resource_type = Column(String(50), nullable=False)  # e.g., "stt", "tts", "llm"
-#     limit = Column(Integer, nullable=False)  # Maximum allowed usage
-#     current_usage = Column(Integer, default=0)
-#     reset_date = Column(DateTime, nullable=False)  # When the quota resets
+#     user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
+#     theme = Column(String(20), default="light", nullable=False)
+#     language = Column(String(10), default="en", nullable=False)
 #     created_at = Column(DateTime, default=datetime.now(timezone.utc))
 #     updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
-    
-#     # Relationships
-#     user = relationship("User", back_populates="quotas")
+
+#     user = relationship("User", back_populates="preferences")
 
 class RequestHistory(Base):
     __tablename__ = "request_history"
@@ -60,7 +43,6 @@ class RequestHistory(Base):
     processing_time = Column(Integer, nullable=True)  # in milliseconds
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
     
-    # Relationships
     user = relationship("User", back_populates="request_history") 
 
 class UserCredits(Base):
@@ -93,4 +75,4 @@ class QwenHistory(Base):
     tokens_used = Column(Integer, nullable=False)
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
     
-    user = relationship("User", back_populates="qwen_history") 
+    user = relationship("User", back_populates="qwen_history")
