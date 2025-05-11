@@ -61,6 +61,7 @@ async def register(user_data: UserRegistration):
             user_id=user.id,
             amount=100,
             transaction_type="initial",
+            scenario_type="registration",
             description="Initial registration credits"
         )
         

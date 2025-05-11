@@ -101,11 +101,11 @@ async def generate_text(
         # Списываем 10 кредитов после успешной генерации
         try:
             transaction_result = credit_repo.create_transaction(
-                user_id=current_user.id,
+            user_id=current_user.id,
                 amount=-10,
-                transaction_type="scenario_llm",
+            transaction_type="scenario_llm",
                 description="Запрос к LLM (10 кредитов)"
-            )
+        )
             logger.info(f"Credit transaction created: {transaction_result}")
             
             # Проверяем новый баланс

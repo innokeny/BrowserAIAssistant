@@ -99,7 +99,7 @@ async function checkAuthStatus() {
       roleIndicator.textContent = userData.user_role === 'admin' ? '👑 Администратор' : '👤 Пользователь';
       document.getElementById('current-user').appendChild(roleIndicator);
       
-      showAuthenticatedUI();
+    showAuthenticatedUI();
     } else {
       // Если токен невалиден, очищаем его
       await chrome.storage.local.remove('authToken');
