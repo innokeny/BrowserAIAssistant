@@ -1,4 +1,5 @@
 import { BaseScenario } from './base-scenario.js';
+import { CreditService } from '../services/credit-service.js';
 
 export class SearchScenario extends BaseScenario {
     static name = "Поиск на странице";
@@ -9,6 +10,9 @@ export class SearchScenario extends BaseScenario {
 
     static async execute(text) {
         try {
+            // Списываем кредиты перед выполнением
+            await CreditService.deductCredits('search');
+            
             const query = this.#sanitizeQuery(text);
 
             const [tab] = await new Promise(resolve =>

@@ -97,7 +97,8 @@ async def get_current_user_profile(current_user: User = Depends(get_current_user
     return {
         "id": current_user.id,
         "name": current_user.name,
-        "email": current_user.email
+        "email": current_user.email,
+        "user_role": current_user.user_role
     }
 
 

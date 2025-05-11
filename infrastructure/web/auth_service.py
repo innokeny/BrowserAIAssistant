@@ -62,7 +62,12 @@ class AuthService:
             return None, "Failed to create user"
 
         access_token = self.create_access_token(
-            data={"sub": str(user.id), "user_id": user.id, "email": user.email}
+            data={
+                "sub": str(user.id), 
+                "user_id": user.id, 
+                "email": user.email,
+                "user_role": user.user_role
+            }
         )
 
         return {"access_token": access_token, "token_type": "bearer"}, None
@@ -76,7 +81,12 @@ class AuthService:
             return None, "Incorrect password"
 
         access_token = self.create_access_token(
-            data={"sub": str(user.id), "user_id": user.id, "email": user.email}
+            data={
+                "sub": str(user.id), 
+                "user_id": user.id, 
+                "email": user.email,
+                "user_role": user.user_role
+            }
         )
 
         return {"access_token": access_token, "token_type": "bearer"}, None

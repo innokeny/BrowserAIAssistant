@@ -73,12 +73,16 @@ async def generate_text(
 ):
     """Generate text using Qwen model"""
     try:
+        # Проверяем баланс до генерации
         current_balance = credit_repo.get_user_balance(current_user.id)
-        if current_balance < 1: 
+        logger.info(f"Current balance for user {current_user.id}: {current_balance}")
+        
+        # Проверяем наличие 10 кредитов для LLM-чата
+        if current_balance < 10: 
             logger.error(f"Insufficient credits for user {current_user.id}: {current_balance}")
             raise HTTPException(
                 status_code=400,
-                detail="Insufficient credits"
+                detail="Insufficient credits. LLM chat requires 10 credits."
             )
         
         input_data = LLMInput(prompt=request_data.prompt)
@@ -94,12 +98,27 @@ async def generate_text(
             logger.error(f"Generation failed: {result.error_message}")
             raise HTTPException(400, detail=result.error_message)
 
-        credit_repo.create_transaction(
-            user_id=current_user.id,
-            amount=-1,
-            transaction_type="scenario_llm",
-            description="Запрос к LLM"
-        )
+        # Списываем 10 кредитов после успешной генерации
+        try:
+            transaction_result = credit_repo.create_transaction(
+                user_id=current_user.id,
+                amount=-10,
+                transaction_type="scenario_llm",
+                description="Запрос к LLM (10 кредитов)"
+            )
+            logger.info(f"Credit transaction created: {transaction_result}")
+            
+            # Проверяем новый баланс
+            new_balance = credit_repo.get_user_balance(current_user.id)
+            logger.info(f"New balance after deduction: {new_balance}")
+            
+            if new_balance >= current_balance:
+                logger.error("Credit deduction failed - balance not decreased")
+                raise HTTPException(500, detail="Failed to deduct credits")
+                
+        except Exception as e:
+            logger.error(f"Failed to create credit transaction: {str(e)}")
+            raise HTTPException(500, detail="Failed to process credit transaction")
             
         logger.info(f"Successfully generated {len(result.text)} symbols")
         return {"text": result.text}

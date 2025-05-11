@@ -106,7 +106,6 @@
         ├── test_resource_manager.py
         └── test_user_controller.py
 ```
-
 ## Описание архитектуры
 
 ### Core (Ядро)

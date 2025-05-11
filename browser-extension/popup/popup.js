@@ -45,9 +45,70 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function checkAuthStatus() {
-  const token = await chrome.storage.local.get('authToken');
-  if (token) {
-    showAuthenticatedUI();
+  try {
+    const result = await chrome.storage.local.get('authToken');
+    const token = result.authToken;
+    
+    if (!token) {
+      showUnauthenticatedUI();
+      return;
+    }
+
+    // Проверяем валидность токена
+    const response = await fetch('http://localhost:8000/api/users/me', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (response.ok) {
+      const userData = await response.json();
+      document.getElementById('current-user').textContent = userData.name;
+      
+      // Сохраняем роль пользователя
+      await chrome.storage.local.set({ 
+        userRole: userData.user_role 
+      });
+      
+      // Получаем баланс пользователя
+      const balanceResponse = await fetch('http://localhost:8000/api/credits/balance', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (balanceResponse.ok) {
+        const balanceData = await balanceResponse.json();
+        console.log('Баланс пользователя:', {
+          name: userData.name,
+          balance: balanceData.balance,
+          role: userData.user_role
+        });
+      }
+      
+      // Логируем роль пользователя
+      console.log('Авторизованный пользователь:', {
+        name: userData.name,
+        email: userData.email,
+        role: userData.user_role
+      });
+      
+      // Добавляем индикатор роли
+      const roleIndicator = document.createElement('span');
+      roleIndicator.className = 'user-role';
+      roleIndicator.textContent = userData.user_role === 'admin' ? '👑 Администратор' : '👤 Пользователь';
+      document.getElementById('current-user').appendChild(roleIndicator);
+      
+      showAuthenticatedUI();
+    } else {
+      // Если токен невалиден, очищаем его
+      await chrome.storage.local.remove('authToken');
+      await chrome.storage.local.remove('userRole');
+      showUnauthenticatedUI();
+    }
+  } catch (error) {
+    console.error('Auth check failed:', error);
+    showUnauthenticatedUI();
   }
 }
 
@@ -83,7 +144,11 @@ function initAuthForms() {
         await chrome.storage.local.set({ 
           authToken: data.access_token 
         });
-        showAuthenticatedUI();
+        // Проверяем статус авторизации после сохранения токена
+        await checkAuthStatus();
+      } else {
+        const errorData = await response.json();
+        showError(errorData.detail || 'Ошибка авторизации');
       }
     } catch (error) {
       showError('Ошибка авторизации');

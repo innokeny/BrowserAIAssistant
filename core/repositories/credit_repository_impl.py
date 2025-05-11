@@ -217,6 +217,7 @@ class CreditRepositoryImpl:
             if amount < 0 and current_balance + amount < 0:
                 raise ValueError("Insufficient credit balance")
             
+            # Создаем транзакцию
             transaction = CreditTransaction(
                 user_id=user_id,
                 amount=amount,
@@ -225,11 +226,24 @@ class CreditRepositoryImpl:
                 created_at=datetime.now()
             )
             session.add(transaction)
+            
+            # Обновляем баланс пользователя
+            user_credits = session.query(UserCredits).filter(
+                UserCredits.user_id == user_id
+            ).first()
+            
+            if not user_credits:
+                user_credits = UserCredits(user_id=user_id, balance=amount)
+            else:
+                user_credits.balance += amount
+                
+            session.add(user_credits)
             session.commit()
             session.refresh(transaction)
             
-            new_balance = current_balance + amount
+            new_balance = user_credits.balance
             
+            # Обновляем кэш в Redis
             cache_key = f"credits:{user_id}"
             self.redis_client.setex(cache_key, 300, str(new_balance))
             

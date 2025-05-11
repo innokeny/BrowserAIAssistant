@@ -15,9 +15,33 @@ export class CommandRouter {
     static async handle(commandText) {
         for (const Scenario of SCENARIOS) {
             if (Scenario.match(commandText)) {
+                const result = await Scenario.execute(commandText);
+                
+                // Получаем и логируем баланс после выполнения сценария
+                try {
+                    const token = (await chrome.storage.local.get('authToken')).authToken;
+                    if (token) {
+                        const balanceResponse = await fetch('http://localhost:8000/api/credits/balance', {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+                        
+                        if (balanceResponse.ok) {
+                            const balanceData = await balanceResponse.json();
+                            console.log('Баланс после выполнения сценария:', {
+                                scenario: Scenario.name,
+                                balance: balanceData.balance
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error('Ошибка при получении баланса:', error);
+                }
+                
                 return {
                     scenario: Scenario.name,
-                    result: await Scenario.execute(commandText)
+                    result
                 };
             }
         }
