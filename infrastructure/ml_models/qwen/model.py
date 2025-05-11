@@ -1,9 +1,9 @@
 import logging
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from typing import AsyncGenerator
 import torch
 import os
 from core.entities.text import LLMInput, LLMResult
+
 
 logger = logging.getLogger(__name__)
 
@@ -107,81 +107,4 @@ class QwenModel:
             logger.error(f"Generation error: {str(e)}", exc_info=True)
             return LLMResult.error(str(e))
     
-    # async def generate_stream(
-    #     self,
-    #     input_data: LLMInput,
-    #     max_length: int = 256,
-    #     temperature: float = 0.7
-    # ) -> AsyncGenerator[LLMResult, None]:
-    #     """Generate text stream"""
-    #     try:
-    #         messages = [
-    #             {"role": "system", "content": "Ты - дружелюбный русскоязычный ассистент. Отвечай кратко и понятно."},
-    #             {"role": "user", "content": input_data.prompt}
-    #         ]
-            
-    #         inputs = self.tokenizer.apply_chat_template(
-    #             messages,
-    #             return_tensors="pt",
-    #             return_attention_mask=True
-    #         ).to(self.model.device)
-            
-    #         # Постепенная генерация
-    #         with torch.inference_mode():
-    #             gen_config = {
-    #                 "input_ids": inputs["input_ids"],
-    #                 "attention_mask": inputs["attention_mask"],
-    #                 "max_new_tokens": max_length,
-    #                 "temperature": temperature,
-    #                 "do_sample": True,
-    #                 "pad_token_id": self.tokenizer.pad_token_id,
-    #                 "eos_token_id": self.tokenizer.eos_token_id,
-    #                 "streamer": self._get_streamer()
-    #             }
-                
-    #             self.model.generate(**gen_config)
-                
-    #             async for token in self._stream_generator():
-    #                 yield token
-                    
-    #     except Exception as e:
-    #         logger.error(f"Stream error: {str(e)}", exc_info=True)
-    #         yield LLMResult.error(str(e))
-
-    # def _get_streamer(self):
-    #     # Реализация streamer для постепенного получения токенов
-    #     from transformers import TextStreamer
-    #     return TextStreamer(
-    #         self.tokenizer,
-    #         skip_prompt=True,
-    #         skip_special_tokens=True
-    #     )
-
-    # async def _stream_generator(self):
-    #     # Кастомная логика для асинхронного стриминга
-    #     buffer = ""
-    #     for new_text in self.streamer:
-    #         buffer += new_text
-    #         if " " in buffer:
-    #             part, buffer = buffer.rsplit(" ", 1)
-    #             yield LLMResult(
-    #                 text=part.strip(),
-    #                 is_success=True,
-    #                 error_message=None
-    #             )
-    #     if buffer:
-    #         yield LLMResult(
-    #             text=buffer.strip(),
-    #             is_success=True,
-    #             error_message=None
-    #         )
-
-    # def _clean_response(self, text: str) -> str:
-    #     # Улучшенная очистка ответа
-    #     clean = (
-    #         text.replace("<|endoftext|>", "")
-    #         .replace("```", "")
-    #         .replace("**", "")
-    #         .strip()
-    #     )
-    #     return clean[:500]  # Ограничение длины
+   

@@ -3,6 +3,7 @@ import aio_pika
 from typing import Any, Callable, Optional
 from .config import rabbitmq_settings
 
+
 class RabbitMQClient:
     """Base class for RabbitMQ operations."""
     
@@ -40,13 +41,10 @@ class RabbitMQClient:
         if not self.connection:
             await self.connect()
             
-        # Declare queue
         queue = await self.channel.declare_queue(queue_name, durable=True)
         
-        # Bind queue to exchange
         await queue.bind(self.exchange, queue_name)
         
-        # Publish message
         await self.exchange.publish(
             aio_pika.Message(
                 body=json.dumps(message).encode(),
@@ -65,16 +63,12 @@ class RabbitMQClient:
         if not self.connection:
             await self.connect()
             
-        # Set prefetch count
         await self.channel.set_qos(prefetch_count=prefetch_count)
         
-        # Declare queue
         queue = await self.channel.declare_queue(queue_name, durable=True)
         
-        # Bind queue to exchange
         await queue.bind(self.exchange, queue_name)
         
-        # Start consuming
         await queue.consume(
             lambda message: self._process_message(message, callback)
         )
@@ -90,6 +84,5 @@ class RabbitMQClient:
                 data = json.loads(message.body.decode())
                 await callback(data)
             except Exception as e:
-                # Log error and reject message
                 print(f"Error processing message: {e}")
                 await message.reject(requeue=True) 

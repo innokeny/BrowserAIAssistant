@@ -5,7 +5,7 @@ from core.entities.text import TextInput
 from infrastructure.ml_models.silero.model import SileroModel
 from io import BytesIO
 import logging
-from urllib.parse import unquote
+
 
 router = APIRouter(prefix="/tts", tags=["text-to-speech"])
 logger = logging.getLogger(__name__)

@@ -2,6 +2,7 @@ from typing import Any, Callable
 from .rabbitmq_client import RabbitMQClient
 from .config import rabbitmq_settings
 
+
 class LLMRabbitMQClient(RabbitMQClient):
     """RabbitMQ client for LLM operations."""
     

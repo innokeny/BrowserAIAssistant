@@ -3,7 +3,7 @@ import os
 import pytest
 from datetime import datetime, timedelta
 from sqlalchemy import text
-from infrastructure.db.credit_repository_impl import CreditRepositoryImpl
+from core.repositories.credit_repository_impl import CreditRepositoryImpl
 from infrastructure.db.db_connection import get_db_session, engine
 from infrastructure.db.models import User, UserCredits, CreditTransaction
 

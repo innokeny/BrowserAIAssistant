@@ -2,6 +2,7 @@ from core.entities.text import TextInput
 from core.entities.audio import AudioResult
 from typing import Optional
 
+
 class TextToSpeechUseCase:
     def __init__(self, tts_model):
         self.tts_model = tts_model

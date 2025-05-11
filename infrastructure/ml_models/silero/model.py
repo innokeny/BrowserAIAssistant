@@ -6,6 +6,7 @@ import random
 from pathlib import Path
 from config.silero import SILERO_MODEL_DIR, SILERO_DEVICE
 
+
 logger = logging.getLogger(__name__)
 
 class SileroModel:

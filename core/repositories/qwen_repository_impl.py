@@ -3,6 +3,7 @@ from typing import List, Optional, Dict, Any
 from infrastructure.db.db_connection import get_db_session
 from infrastructure.db.models import QwenHistory
 
+
 class QwenRepositoryImpl:
     def process_request(
         self,
@@ -12,10 +13,8 @@ class QwenRepositoryImpl:
         temperature: Optional[float] = None
     ) -> str:
         """Process a Qwen chat request"""
-        # TODO: Implement actual Qwen model integration
         response = f"Mock response for prompt: {prompt}"
         
-        # Save history
         with get_db_session() as session:
             history = QwenHistory(
                 user_id=user_id,

@@ -1,12 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends, Header
-from typing import Optional, List
+from typing import List
 from core.use_cases.user_use_cases import UserUseCases
-from infrastructure.db.user_repository_impl import UserRepositoryImpl
-from infrastructure.db.request_history_repository_impl import RequestHistoryRepositoryImpl
+from core.repositories.user_repository_impl import UserRepositoryImpl
+from core.repositories.request_history_repository_impl import RequestHistoryRepositoryImpl
 from infrastructure.web.auth_service import AuthService
 from core.entities.user import User
 from infrastructure.web.schemas.user_schema import (
-    UserCreate,
     UserRegistration,
     UserLogin,
     UserResponse,
@@ -14,10 +13,7 @@ from infrastructure.web.schemas.user_schema import (
     QuotaResponse,
     RequestHistoryResponse
 )
-from infrastructure.db.credit_repository_impl import CreditRepositoryImpl
-
-
-credit_repository = CreditRepositoryImpl()
+from core.repositories.credit_repository_impl import CreditRepositoryImpl
 
 
 router = APIRouter(prefix="/api", tags=["users"])
@@ -25,6 +21,8 @@ user_repository = UserRepositoryImpl()
 request_history_repository = RequestHistoryRepositoryImpl()
 user_use_cases = UserUseCases(user_repository)
 auth_service = AuthService()
+credit_repository = CreditRepositoryImpl()
+
 
 # Authentication dependency
 async def get_current_user(authorization: str = Header(None)):
@@ -44,7 +42,6 @@ async def get_current_user(authorization: str = Header(None)):
 async def register(user_data: UserRegistration):
     """Register a new user with authentication, quotas and initial credits"""
     try:
-        # Создание пользователя
         token_data, error = auth_service.register_user(
             name=user_data.name,
             email=user_data.email,
@@ -54,15 +51,12 @@ async def register(user_data: UserRegistration):
         if error:
             raise HTTPException(status_code=400, detail=error)
 
-        # Получение пользователя через репозиторий
         user = user_repository.get_by_email(user_data.email)
         if not user:
             raise HTTPException(status_code=500, detail="User creation failed")
 
-        # Создание квот
         user_use_cases.register_user(user.name, user.email)
         
-        # Добавление кредитов через use case
         success, result = credit_repository.add_credits(
             user_id=user.id,
             amount=100,
@@ -75,7 +69,7 @@ async def register(user_data: UserRegistration):
 
         return token_data
         
-    except HTTPException as he:
+    except HTTPException as e:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -106,29 +100,6 @@ async def get_current_user_profile(current_user: User = Depends(get_current_user
         "email": current_user.email
     }
 
-# @router.get("/users/me/preferences", response_model=UserPreferences)
-# async def get_user_preferences(current_user: User = Depends(get_current_user)):
-#     """
-#     Get user preferences.
-#     """
-#     preferences = user_use_cases.get_user_preferences(current_user.id)
-#     if not preferences:
-#         # Return default preferences
-#         return UserPreferences()
-#     return preferences
-
-# @router.put("/users/me/preferences", response_model=UserPreferences)
-# async def update_user_preferences(
-#     preferences: UserPreferences,
-#     current_user: User = Depends(get_current_user)
-# ):
-#     """
-#     Update user preferences.
-#     """
-#     updated_preferences = user_use_cases.update_user_preferences(current_user.id, preferences)
-#     if not updated_preferences:
-#         raise HTTPException(status_code=400, detail="Failed to update preferences")
-#     return updated_preferences
 
 # Existing User Routes
 @router.get("/users/{user_id}", response_model=UserResponse)

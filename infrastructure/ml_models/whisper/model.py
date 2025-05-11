@@ -38,10 +38,9 @@ class WhisperModel:
                 audio_data = self._resample(audio_data, sample_rate)
             
             # Преобразование в формат, ожидаемый Whisper
-            audio_data = audio_data.reshape(-1)  # Конвертация в 1D массив
+            audio_data = audio_data.reshape(-1) 
             audio_data = audio_data.astype(np.float32)
             
-            # Выполнение транскрибации
             result = await asyncio.get_event_loop().run_in_executor(
                 None,
                 lambda: self.model.transcribe(audio_data, language=language)

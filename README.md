@@ -12,10 +12,6 @@
 │   │   └── background.js
 │   ├── content
 │   │   └── content.js
-│   ├── extension
-│   │   ├── manifest.json
-│   │   ├── popup.html
-│   │   └── popup.js
 │   ├── icons
 │   │   ├── icon-128.png
 │   │   ├── icon-48.png
@@ -40,7 +36,6 @@
 │       ├── popup.html
 │       └── popup.js
 ├── config
-│   ├── gemini.py
 │   ├── qwen.py
 │   ├── settings.py
 │   ├── silero.py
@@ -51,9 +46,12 @@
 │   │   ├── text.py
 │   │   └── user.py
 │   ├── repositories
-│   │   └── user_repository.py
+│   │   ├── credit_repository_impl.py
+│   │   ├── qwen_repository_impl.py
+│   │   ├── request_history_repository_impl.py
+│   │   ├── user_repository.py
+│   │   └── user_repository_impl.py
 │   └── use_cases
-│       ├── gemini_use_cases.py
 │       ├── qwen_use_cases.py
 │       ├── stt_use_cases.py
 │       ├── tts_use_cases.py
@@ -61,19 +59,12 @@
 ├── docker-compose.yml
 ├── infrastructure
 │   ├── db
-│   │   ├── credit_repository_impl.py
 │   │   ├── db_connection.py
 │   │   ├── init_db.py
 │   │   ├── models
 │   │   │   ├── silero
 │   │   │   └── whisper
-│   │   ├── models.py
-│   │   ├── quota_repository_impl.py
-│   │   ├── qwen_repository_impl.py
-│   │   ├── request_history_repository_impl.py
-│   │   ├── resource_manager.py
-│   │   ├── user_preferences_repository_impl.py
-│   │   └── user_repository_impl.py
+│   │   └── models.py
 │   ├── messaging
 │   │   ├── config.py
 │   │   ├── llm_client.py
@@ -93,7 +84,6 @@
 │       ├── controllers
 │       │   ├── analytics_controller.py
 │       │   ├── credit_controller.py
-│       │   ├── gemini_controller.py
 │       │   ├── qwen_controller.py
 │       │   ├── stt_controller.py
 │       │   ├── tts_controller.py
@@ -101,23 +91,8 @@
 │       └── schemas
 │           ├── __init__.py
 │           ├── credit_schema.py
-│           └── qwen_schema.py
-├── models
-│   ├── qwen
-│   │   ├── added_tokens.json
-│   │   ├── config.json
-│   │   ├── generation_config.json
-│   │   ├── merges.txt
-│   │   ├── model.safetensors
-│   │   ├── special_tokens_map.json
-│   │   ├── tokenizer.json
-│   │   ├── tokenizer_config.json
-│   │   └── vocab.json
-│   ├── silero
-│   │   └── v3_1_ru.pt
-│   └── whisper
-│       ├── small.pt
-│       └── tiny.pt
+│           ├── qwen_schema.py
+│           └── user_schema.py
 ├── requirements.txt
 ├── scripts
 │   └── download_models.py

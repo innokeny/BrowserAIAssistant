@@ -1,7 +1,8 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Boolean, Float
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from .db_connection import Base
+
 
 class User(Base):
     __tablename__ = "users"
@@ -15,20 +16,7 @@ class User(Base):
     user_role = Column(String(20), nullable=False, default="user")
     
     request_history = relationship("RequestHistory", back_populates="user")
-    # preferences = relationship("UserPreferences", back_populates="user", uselist=False)
     qwen_history = relationship("QwenHistory", back_populates="user")
-
-# class UserPreferences(Base):
-#     __tablename__ = "user_preferences"
-
-#     id = Column(Integer, primary_key=True, index=True)
-#     user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
-#     theme = Column(String(20), default="light", nullable=False)
-#     language = Column(String(10), default="en", nullable=False)
-#     created_at = Column(DateTime, default=datetime.now(timezone.utc))
-#     updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
-
-#     user = relationship("User", back_populates="preferences")
 
 class RequestHistory(Base):
     __tablename__ = "request_history"

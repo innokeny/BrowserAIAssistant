@@ -1,8 +1,9 @@
 from infrastructure.db.db_connection import get_db_session
 from infrastructure.db.models import RequestHistory as RequestHistoryModel, CreditTransaction
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List, Optional, Dict, Any
 from sqlalchemy import func
+
 
 class RequestHistoryRepositoryImpl:
     def save_request(self, user_id, request_type, request_data=None, response_data=None, 
@@ -22,7 +23,6 @@ class RequestHistoryRepositoryImpl:
         Returns:
             Created request history object
         """
-        # Truncate data if needed
         if request_data and len(request_data) > 1000:
             request_data = request_data[:997] + "..."
         
@@ -93,21 +93,17 @@ class RequestHistoryRepositoryImpl:
     def get_usage_statistics(self, user_id: int) -> Dict[str, Any]:
         """Get usage statistics for a user"""
         with get_db_session() as session:
-            # Get total requests
             total_requests = session.query(func.count(RequestHistoryModel.id))\
                 .filter(RequestHistoryModel.user_id == user_id).scalar()
             
-            # Get success rate and counts
             success_count = session.query(func.count(RequestHistoryModel.id))\
                 .filter(RequestHistoryModel.user_id == user_id, RequestHistoryModel.status == "success").scalar()
             failed_count = total_requests - success_count
             success_rate = (success_count / total_requests * 100) if total_requests > 0 else 0
             
-            # Get average processing time
             avg_processing_time = session.query(func.avg(RequestHistoryModel.processing_time))\
                 .filter(RequestHistoryModel.user_id == user_id).scalar() or 0
             
-            # Get requests by type
             requests_by_type = {}
             type_counts = session.query(
                 RequestHistoryModel.request_type,
@@ -130,17 +126,14 @@ class RequestHistoryRepositoryImpl:
     def get_credit_statistics(self, user_id: int) -> Dict[str, Any]:
         """Get credit statistics for a user"""
         with get_db_session() as session:
-            # Get current balance
             current_balance = session.query(func.sum(CreditTransaction.amount))\
                 .filter(CreditTransaction.user_id == user_id).scalar() or 0
             
-            # Get total earned and spent
             earned = session.query(func.sum(CreditTransaction.amount))\
                 .filter(CreditTransaction.user_id == user_id, CreditTransaction.amount > 0).scalar() or 0
             spent = abs(session.query(func.sum(CreditTransaction.amount))\
                 .filter(CreditTransaction.user_id == user_id, CreditTransaction.amount < 0).scalar() or 0)
             
-            # Get transactions by type
             transactions_by_type = {}
             type_counts = session.query(
                 CreditTransaction.transaction_type,

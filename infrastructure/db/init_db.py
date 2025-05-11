@@ -4,6 +4,7 @@ import time
 from sqlalchemy.exc import OperationalError
 from infrastructure.db.db_connection import engine, Base
 
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 def init_db():

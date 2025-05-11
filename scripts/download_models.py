@@ -5,15 +5,14 @@ import whisper
 import warnings
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+
 warnings.filterwarnings("ignore", category=UserWarning)
 
 def download_silero_model(save_dir: Path):
     """Загрузка модели Silero TTS"""
     try:
-        # Устанавливаем директорию для кэша torch.hub
         torch.hub.set_dir(str(save_dir))
         
-        # Загружаем модель (она автоматически сохранится в кэше)
         model, sample_rate = torch.hub.load(
             repo_or_dir='snakers4/silero-models',
             model='silero_tts',
@@ -58,7 +57,6 @@ def download_qwen_model(save_dir: Path):
             trust_remote_code=True
         )
         
-        # Сохраняем модель и токенизатор
         model.save_pretrained(save_dir)
         tokenizer.save_pretrained(save_dir)
         
@@ -69,14 +67,12 @@ def download_qwen_model(save_dir: Path):
         raise
 
 if __name__ == "__main__":
-    # Создаем директории если их нет
     Path('models/silero').mkdir(parents=True, exist_ok=True)
     Path('models/whisper').mkdir(parents=True, exist_ok=True)
     Path('models/qwen').mkdir(parents=True, exist_ok=True)
     
     print("Starting model downloads...")
     
-    # Скачиваем модели
     download_silero_model(Path('models/silero'))
     download_whisper_model('small', Path('models/whisper'))
     download_qwen_model(Path('models/qwen'))

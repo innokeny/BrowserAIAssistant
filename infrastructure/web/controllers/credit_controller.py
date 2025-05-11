@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import List, Optional
-from infrastructure.db.credit_repository_impl import CreditRepositoryImpl
+from core.repositories.credit_repository_impl import CreditRepositoryImpl
 from infrastructure.web.auth_service import get_current_user
 from infrastructure.db.models import User
 from infrastructure.web.schemas.credit_schema import CreditBalance, CreditTransaction, CreditTransactionCreate, CreditTransactionResponse
@@ -49,7 +49,6 @@ async def get_credit_history(
         offset=offset
     )
     
-    # Add balance to each transaction
     for transaction in history:
         transaction["balance"] = credit_repository.get_user_balance(current_user.id)
     
@@ -71,7 +70,6 @@ async def add_credits(
         description=transaction.description
     )
 
-    # Get updated balance
     balance = credit_repository.get_user_balance(current_user.id)
     result["balance"] = balance
     return result
@@ -91,12 +89,11 @@ async def deduct_credits(
 
     result = credit_repository.create_transaction(
         user_id=current_user.id,
-        amount=-transaction.amount,  # Store negative amount for deduction
+        amount=-transaction.amount,  
         transaction_type="deduct",
         description=transaction.description
     )
 
-    # Get updated balance
     balance = credit_repository.get_user_balance(current_user.id)
     result["balance"] = balance
     return result
@@ -109,7 +106,6 @@ async def create_transaction(
     """Create a new credit transaction"""
     try:
         if transaction.amount < 0:
-            # Check if user has enough credits for negative transactions
             current_balance = credit_repository.get_user_balance(current_user.id)
             if current_balance + transaction.amount < 0:
                 raise HTTPException(
