@@ -18,46 +18,48 @@ class CreditRepositoryImpl:
             return int(cached_balance)
         
         with get_db_session() as session:
-            # Get sum of all transactions
-            transaction_sum = session.query(func.sum(CreditTransaction.amount))\
-                .filter(CreditTransaction.user_id == user_id)\
-                .scalar() or 0
-            
-            # Cache the result
-            self.redis_client.setex(cache_key, 300, str(transaction_sum))
-            
-            return transaction_sum
-    
-    def add_credits(self, user_id: int, amount: int, transaction_type: str, description: Optional[str] = None) -> int:
-        """Add credits to user's balance"""
-        with get_db_session() as session:
-            # Update UserCredits balance
-            user_credits = session.query(UserCredits).filter(
-                UserCredits.user_id == user_id
-            ).first()
+            user_credits = session.query(UserCredits)\
+                .filter(UserCredits.user_id == user_id)\
+                .first()
             
             if not user_credits:
-                user_credits = UserCredits(user_id=user_id, balance=0)
+                return 0
+                
+            self.redis_client.setex(cache_key, 300, str(user_credits.balance))
+            return user_credits.balance
+    
+    def add_credits(self, user_id: int, amount: int, transaction_type: str, description: Optional[str] = None) -> tuple[bool, int|str]:
+        """Add credits to user's balance"""
+        with get_db_session() as session:
+            try:
+                user_credits = session.query(UserCredits).filter(
+                    UserCredits.user_id == user_id
+                ).first()
+                
+                if not user_credits:
+                    user_credits = UserCredits(user_id=user_id, balance=amount)
+                else:
+                    user_credits.balance += amount
+                    
                 session.add(user_credits)
-            
-            # Create transaction record
-            transaction = CreditTransaction(
-                user_id=user_id,
-                amount=amount,
-                transaction_type=transaction_type,
-                description=description
-            )
-            session.add(transaction)
-            session.commit()
-            
-            # Clear cache before getting new balance
-            cache_key = f"credits:{user_id}"
-            self.redis_client.delete(cache_key)
-            
-            # Get total balance including transactions
-            total_balance = self.get_user_balance(user_id)
-            
-            return total_balance
+                
+                transaction = CreditTransaction(
+                    user_id=user_id,
+                    amount=amount,
+                    transaction_type=transaction_type,
+                    description=description
+                )
+                session.add(transaction)
+                session.commit()
+                
+                cache_key = f"credits:{user_id}"
+                self.redis_client.setex(cache_key, 300, str(user_credits.balance))
+                
+                return True, user_credits.balance
+                
+            except Exception as e:
+                session.rollback()
+                return False, str(e)
     
     def spend_credits(self, user_id, amount, scenario_type=None, description=None):
         """Spend credits from user's balance"""
@@ -85,7 +87,8 @@ class CreditRepositoryImpl:
                 scenario_type=scenario_type,
                 description=description
             )
-            session.add(transaction)
+            user_credits.balance -= amount
+            session.add(user_credits)
             session.commit()
             
             # Clear cache before getting new balance

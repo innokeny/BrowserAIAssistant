@@ -1,6 +1,6 @@
 import { BaseScenario } from './base-scenario.js';
 import { TTSService } from '../services/tts-service.js';
-import { LLMService } from '../services/llm-service.js'; // Выносим сервис в отдельный файл
+import { LLMService } from '../services/llm-service.js'; 
 
 export class LLMChatScenario extends BaseScenario {
     static name = "Общение с ИИ";
@@ -18,9 +18,10 @@ export class LLMChatScenario extends BaseScenario {
     static async execute(commandText) {
         try {
             const responseText = await LLMService.generate(commandText);
-
-            // Очистка текста перед отправкой в TTS
+            console.log("Generated text:", responseText); 
+            
             const cleanText = this.#sanitizeText(responseText);
+            console.log("Cleaned text:", cleanText); 
 
             await TTSService.speak(cleanText);
 

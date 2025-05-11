@@ -2,19 +2,9 @@ import os
 import sys
 import time
 from sqlalchemy.exc import OperationalError
-
-# Add the project root to the Python path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-
 from infrastructure.db.db_connection import engine, Base
-from infrastructure.db.models import (
-    User, 
-    Quota, 
-    RequestHistory, 
-    UserPreferences,
-    UserCredits,
-    CreditTransaction
-)
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 def init_db():
     """Initialize the database by creating all tables."""
@@ -44,10 +34,21 @@ def wait_for_db(max_retries=5, retry_interval=2):
     print("Failed to connect to the database after multiple retries.")
     return False
 
+def drop_db():
+    """Drop all tables in the database."""
+    print("Dropping all database tables...")
+    try:
+        # Drop all tables
+        Base.metadata.drop_all(bind=engine)
+        print("All database tables dropped successfully!")
+    except Exception as e:
+        print(f"Error dropping database tables: {e}")
+        sys.exit(1)
+
 if __name__ == "__main__":
     # Wait for the database to be ready
     if wait_for_db():
-        # Initialize the database
+        # drop_db()
         init_db()
     else:
         sys.exit(1) 

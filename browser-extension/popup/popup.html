@@ -1,24 +1,82 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-  <meta charset="UTF-8">  
+  <meta charset="UTF-8">
   <link rel="stylesheet" href="popup.css">
 </head>
+
 <body>
+  <!-- browser-extension/popup/popup.html -->
   <div class="container">
-    <button id="startBtn" class="mic-button">
-      <img src="../icons/mic-icon.png" alt="Запись">
-    </button>
-    <div id="status">Нажмите и говорите</div>
-  </div>
-  <div class="permission-help" style="display: none;">
-    <p>Как разрешить доступ:</p>
-    <ol>
-      <li>Нажмите на иконку 🔒 в адресной строке</li>
-      <li>Выберите "Настройки сайта"</li>
-      <li>В разделе "Микрофон" выберите "Разрешить"</li>
-    </ol>
+    <!-- Состояние аутентификации -->
+    <div id="auth-status" class="auth-status" style="display: none;">
+      <span>Вы вошли как: <span id="current-user"></span></span>
+      <button id="logout-btn" class="btn logout-btn">Выйти</button>
+    </div>
+
+    <!-- Формы авторизации -->
+    <div id="auth-forms">
+      <!-- Переключение между формами -->
+      <div class="auth-tabs">
+        <button class="tab-btn active" data-tab="login">Вход</button>
+        <button class="tab-btn" data-tab="register">Регистрация</button>
+      </div>
+
+      <!-- Форма входа -->
+      <form id="login-form" class="auth-form active">
+        <div class="form-group">
+          <label for="login-email">Email:</label>
+          <input type="email" id="login-email" required>
+        </div>
+        <div class="form-group">
+          <label for="login-password">Пароль:</label>
+          <input type="password" id="login-password" required>
+        </div>
+        <button type="submit" class="btn auth-btn">Войти</button>
+      </form>
+
+      <!-- Форма регистрации -->
+      <form id="register-form" class="auth-form">
+        <div class="form-group">
+          <label for="register-name">Имя:</label>
+          <input type="text" id="register-name" required minlength="2">
+        </div>
+        <div class="form-group">
+          <label for="register-email">Email:</label>
+          <input type="email" id="register-email" required>
+        </div>
+        <div class="form-group">
+          <label for="register-password">Пароль:</label>
+          <input type="password" id="register-password" required minlength="6">
+        </div>
+        <div class="form-group">
+          <label for="confirm-password">Подтвердите пароль:</label>
+          <input type="password" id="confirm-password" required>
+        </div>
+        <button type="submit" class="btn auth-btn">Зарегистрироваться</button>
+      </form>
+    </div>
+
+    <!-- Основной интерфейс -->
+    <div id="main-interface" style="display: none;">
+      <div class="container_popup">
+        <button id="startBtn" class="mic-button">
+          <img src="../icons/mic-icon.png" alt="Запись">
+        </button>
+        <div id="status">Нажмите и говорите</div>
+      </div>
+      <div class="permission-help" style="display: none;">
+        <p>Как разрешить доступ:</p>
+        <ol>
+          <li>Нажмите на иконку 🔒 в адресной строке</li>
+          <li>Выберите "Настройки сайта"</li>
+          <li>В разделе "Микрофон" выберите "Разрешить"</li>
+        </ol>
+      </div>
+    </div>
   </div>
   <script type="module" src="popup.js"></script>
 </body>
+
 </html>

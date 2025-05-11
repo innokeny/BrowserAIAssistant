@@ -4,6 +4,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import redis
 from contextlib import contextmanager
+import pandas as pd
 
 # PostgreSQL connection
 POSTGRES_USER = os.getenv('POSTGRES_USER', 'postgres')

@@ -1,31 +1,34 @@
 import logging
-from pathlib import Path
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from typing import AsyncGenerator
 import torch
 import os
-
-from config.qwen import QWEN_MODEL_DIR
 from core.entities.text import LLMInput, LLMResult
 
 logger = logging.getLogger(__name__)
 
 class QwenModel:
     def __init__(self, model_name: str = None):
-        # Use local model path if available, otherwise use default
         self.model_name = model_name or os.getenv("QWEN_MODEL_PATH", "models/qwen")
         logger.info(f"Loading Qwen model from: {self.model_name}")
         
         self.tokenizer = AutoTokenizer.from_pretrained(
             self.model_name,
             trust_remote_code=True,
-            local_files_only=True
+            local_files_only=True,
+            pad_token="<|endoftext|>",  
+            padding_side="left"
         )
+        
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+        
         self.model = AutoModelForCausalLM.from_pretrained(
             self.model_name,
             device_map="auto",
             trust_remote_code=True,
-            local_files_only=True
+            local_files_only=True,
+            torch_dtype=torch.bfloat16
         )
         self.model.eval()
 
@@ -39,117 +42,146 @@ class QwenModel:
         6. Не задавай уточняющих вопросов
         7. Не используй формальные обороты
         8. Не повторяйся
-        9. Не используй эмодзи"""
+        9. Не используй эмодзи
+        10. Цифры пиши словами"""
         
-        return f"{system_prompt}\n\nЧеловек: {prompt}\n\nАссистент:"
+        return f"<|im_start|>user\n{system_prompt}\n\nЧеловек: {prompt}\n<|im_end|>\n<|im_start|>assistant\n"
 
     def _clean_response(self, response: str) -> str:
-        # Очищаем ответ от возможных технических деталей
         response = response.replace("```", "").strip()
         response = response.replace("python", "").strip()
         response = response.replace("code:", "").strip()
         
-        # Удаляем любые оставшиеся технические маркеры и нормализуем пробелы
         response = ' '.join(response.split())
         
-        # Ограничиваем длину ответа
-        if len(response) > 200:
-            response = response[:200].rsplit(' ', 1)[0] + '...'
+        if len(response) > 256:
+            response = response[:256].rsplit(' ', 1)[0] + '...'
         
         return response
 
     async def generate(
         self,
         input_data: LLMInput,
-        max_length: int = 100,
+        max_length: int = 256,
         temperature: float = 0.7
     ) -> LLMResult:
-        """Generate text using Qwen model"""
         try:
-            # Prepare input
-            messages = [
-                {"role": "system", "content": "You are a helpful AI assistant."},
-                {"role": "user", "content": input_data.prompt}
-            ]
+            formatted_prompt = self._format_prompt(input_data.prompt)
             
-            # Tokenize input
-            input_ids = self.tokenizer.apply_chat_template(
-                messages,
-                return_tensors="pt"
+            inputs = self.tokenizer(
+                formatted_prompt,
+                return_tensors="pt",
+                return_attention_mask=True
             ).to(self.model.device)
+
+            outputs = self.model.generate(
+                **inputs,
+                max_new_tokens=max_length,
+                temperature=temperature,
+                eos_token_id=self.tokenizer.eos_token_id,
+                pad_token_id=self.tokenizer.pad_token_id,
+                do_sample=True
+            )
             
-            # Generate text
-            with torch.no_grad():
-                output_ids = self.model.generate(
-                    input_ids,
-                    max_length=max_length,
-                    temperature=temperature,
-                    do_sample=True,
-                    pad_token_id=self.tokenizer.pad_token_id
-                )
-            
-            # Decode output
-            output_text = self.tokenizer.decode(output_ids[0], skip_special_tokens=True)
+            full_response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+            if "</think>" in full_response:
+                response = full_response.split("</think>")[-1].strip()
+            elif "<|im_start|>assistant\n" in full_response:
+                response = full_response.split("<|im_start|>assistant\n")[-1].split("<|im_end|>")[0].strip()
+            else:
+                logger.warning("Response does not contain expected markers. Returning full response.")
+                response = full_response.strip()
+
+            response = self._clean_response(response)
+
+            logger.info(f"Generated response: {response}")
             
             return LLMResult(
-                text=output_text,
+                text=response,
                 is_success=True,
                 error_message=None
             )
             
         except Exception as e:
             logger.error(f"Generation error: {str(e)}", exc_info=True)
-            return LLMResult(
-                text="",
-                is_success=False,
-                error_message=str(e)
-            )
-
-    async def generate_stream(
-        self,
-        input_data: LLMInput,
-        max_length: int = 100,
-        temperature: float = 0.7
-    ) -> AsyncGenerator[LLMResult, None]:
-        """Generate text stream using Qwen model"""
-        try:
-            # Prepare input
-            messages = [
-                {"role": "system", "content": "You are a helpful AI assistant."},
-                {"role": "user", "content": input_data.prompt}
-            ]
+            return LLMResult.error(str(e))
+    
+    # async def generate_stream(
+    #     self,
+    #     input_data: LLMInput,
+    #     max_length: int = 256,
+    #     temperature: float = 0.7
+    # ) -> AsyncGenerator[LLMResult, None]:
+    #     """Generate text stream"""
+    #     try:
+    #         messages = [
+    #             {"role": "system", "content": "Ты - дружелюбный русскоязычный ассистент. Отвечай кратко и понятно."},
+    #             {"role": "user", "content": input_data.prompt}
+    #         ]
             
-            # Tokenize input
-            input_ids = self.tokenizer.apply_chat_template(
-                messages,
-                return_tensors="pt"
-            ).to(self.model.device)
+    #         inputs = self.tokenizer.apply_chat_template(
+    #             messages,
+    #             return_tensors="pt",
+    #             return_attention_mask=True
+    #         ).to(self.model.device)
             
-            # Generate text stream
-            with torch.no_grad():
-                for output_ids in self.model.generate(
-                    input_ids,
-                    max_length=max_length,
-                    temperature=temperature,
-                    do_sample=True,
-                    pad_token_id=self.tokenizer.pad_token_id,
-                    stream=True
-                ):
-                    # Decode output
-                    output_text = self.tokenizer.decode(output_ids, skip_special_tokens=True)
+    #         # Постепенная генерация
+    #         with torch.inference_mode():
+    #             gen_config = {
+    #                 "input_ids": inputs["input_ids"],
+    #                 "attention_mask": inputs["attention_mask"],
+    #                 "max_new_tokens": max_length,
+    #                 "temperature": temperature,
+    #                 "do_sample": True,
+    #                 "pad_token_id": self.tokenizer.pad_token_id,
+    #                 "eos_token_id": self.tokenizer.eos_token_id,
+    #                 "streamer": self._get_streamer()
+    #             }
+                
+    #             self.model.generate(**gen_config)
+                
+    #             async for token in self._stream_generator():
+    #                 yield token
                     
-                    yield LLMResult(
-                        text=output_text,
-                        is_success=True,
-                        error_message=None
-                    )
-                    
-        except Exception as e:
-            logger.error(f"Streaming generation error: {str(e)}", exc_info=True)
-            yield LLMResult(
-                text="",
-                is_success=False,
-                error_message=str(e)
-            )
+    #     except Exception as e:
+    #         logger.error(f"Stream error: {str(e)}", exc_info=True)
+    #         yield LLMResult.error(str(e))
 
+    # def _get_streamer(self):
+    #     # Реализация streamer для постепенного получения токенов
+    #     from transformers import TextStreamer
+    #     return TextStreamer(
+    #         self.tokenizer,
+    #         skip_prompt=True,
+    #         skip_special_tokens=True
+    #     )
 
+    # async def _stream_generator(self):
+    #     # Кастомная логика для асинхронного стриминга
+    #     buffer = ""
+    #     for new_text in self.streamer:
+    #         buffer += new_text
+    #         if " " in buffer:
+    #             part, buffer = buffer.rsplit(" ", 1)
+    #             yield LLMResult(
+    #                 text=part.strip(),
+    #                 is_success=True,
+    #                 error_message=None
+    #             )
+    #     if buffer:
+    #         yield LLMResult(
+    #             text=buffer.strip(),
+    #             is_success=True,
+    #             error_message=None
+    #         )
+
+    # def _clean_response(self, text: str) -> str:
+    #     # Улучшенная очистка ответа
+    #     clean = (
+    #         text.replace("<|endoftext|>", "")
+    #         .replace("```", "")
+    #         .replace("**", "")
+    #         .strip()
+    #     )
+    #     return clean[:500]  # Ограничение длины

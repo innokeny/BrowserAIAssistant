@@ -22,3 +22,9 @@ class CreditTransactionCreate(BaseModel):
     amount: int = Field(..., description="Amount of credits to add/deduct")
     transaction_type: str = Field(..., description="Type of transaction")
     description: Optional[str] = Field(None, description="Description of the transaction") 
+
+class CreditSettings(BaseModel):
+    initial_credits: int = Field(100, description="Credits for new users")
+
+class CreditConfig:
+    settings = CreditSettings()

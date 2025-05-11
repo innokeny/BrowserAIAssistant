@@ -1,6 +1,6 @@
 # Voice Assistant Extention
 
-Расширяемый голосовой ассистент с поддержкой современных ML-моделей (Whisper, Silero, Gemini, Qwen)
+Расширяемый голосовой ассистент с поддержкой современных ML-моделей (Whisper, Silero, Qwen)
 
 ```
 .
@@ -12,6 +12,10 @@
 │   │   └── background.js
 │   ├── content
 │   │   └── content.js
+│   ├── extension
+│   │   ├── manifest.json
+│   │   ├── popup.html
+│   │   └── popup.js
 │   ├── icons
 │   │   ├── icon-128.png
 │   │   ├── icon-48.png
@@ -57,13 +61,18 @@
 ├── docker-compose.yml
 ├── infrastructure
 │   ├── db
+│   │   ├── credit_repository_impl.py
 │   │   ├── db_connection.py
 │   │   ├── init_db.py
+│   │   ├── models
+│   │   │   ├── silero
+│   │   │   └── whisper
 │   │   ├── models.py
 │   │   ├── quota_repository_impl.py
+│   │   ├── qwen_repository_impl.py
 │   │   ├── request_history_repository_impl.py
 │   │   ├── resource_manager.py
-│   │   ├── test_connections.py
+│   │   ├── user_preferences_repository_impl.py
 │   │   └── user_repository_impl.py
 │   ├── messaging
 │   │   ├── config.py
@@ -79,16 +88,48 @@
 │   │   └── whisper
 │   │       └── model.py
 │   └── web
-│       ├── fastapi_app.py
-│       └── controllers
-│           ├── gemini_controller.py
-│           ├── qwen_controller.py
-│           ├── stt_controller.py
-│           ├── tts_controller.py
-│           └── user_controller.py
+│       ├── app.py
+│       ├── auth_service.py
+│       ├── controllers
+│       │   ├── analytics_controller.py
+│       │   ├── credit_controller.py
+│       │   ├── gemini_controller.py
+│       │   ├── qwen_controller.py
+│       │   ├── stt_controller.py
+│       │   ├── tts_controller.py
+│       │   └── user_controller.py
+│       └── schemas
+│           ├── __init__.py
+│           ├── credit_schema.py
+│           └── qwen_schema.py
+├── models
+│   ├── qwen
+│   │   ├── added_tokens.json
+│   │   ├── config.json
+│   │   ├── generation_config.json
+│   │   ├── merges.txt
+│   │   ├── model.safetensors
+│   │   ├── special_tokens_map.json
+│   │   ├── tokenizer.json
+│   │   ├── tokenizer_config.json
+│   │   └── vocab.json
+│   ├── silero
+│   │   └── v3_1_ru.pt
+│   └── whisper
+│       ├── small.pt
+│       └── tiny.pt
 ├── requirements.txt
-└── scripts
-    └── download_models.py
+├── scripts
+│   └── download_models.py
+└── tests
+    └── unit
+        ├── test_analytics_controller.py
+        ├── test_auth_service.py
+        ├── test_credit_controller.py
+        ├── test_credit_repository.py
+        ├── test_qwen_controller.py
+        ├── test_resource_manager.py
+        └── test_user_controller.py
 ```
 
 ## Описание архитектуры
@@ -100,7 +141,7 @@
   - `User` – данные пользователя
 - **Use Cases**: Бизнес-логика:
   - STT/TTS – преобразование речи в текст и обратно
-  - Gemini/Qwen – интеграция с LLM
+  - Qwen – интеграция с LLM
   - User – управление пользователями
 - **Repositories**: Абстракции для работы с хранилищами
 
@@ -111,7 +152,7 @@
   - Qwen – large language model
 - **Web**: FastAPI-контроллеры для:
   - Речевых операций (STT/TTS)
-  - Работы с LLM (Gemini/Qwen)
+  - Работы с LLM 
   - Пользовательского API
 - **DB**: Реализация хранилища данных
 - **Messaging**: Асинхронная коммуникация через RabbitMQ
@@ -187,7 +228,7 @@ docker-compose logs -f rabbitmq
 ### Поддерживаемые технологии
 - STT: OpenAI Whisper (base/small)
 - TTS: Silero v3 (русский язык)
-- LLM: Google Gemini, Qwen
+- LLM: Qwen
 - Web: FastAPI, Uvicorn
 - Messaging: RabbitMQ
 - DB: PostgreSQL, Redis

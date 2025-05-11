@@ -5,6 +5,8 @@ from infrastructure.db.credit_repository_impl import CreditRepositoryImpl
 from infrastructure.web.auth_service import get_current_user
 from infrastructure.db.models import User
 from infrastructure.web.schemas.credit_schema import CreditBalance, CreditTransaction, CreditTransactionCreate, CreditTransactionResponse
+from pydantic import ConfigDict
+
 
 router = APIRouter(prefix="/api", tags=["credits"])
 credit_repository = CreditRepositoryImpl()
@@ -16,6 +18,17 @@ class CreditTransactionResponse(BaseModel):
     description: Optional[str]
     created_at: str
     balance: int
+
+    model_config = ConfigDict(json_schema_extra={
+        "examples": [{
+            "id": 1,
+            "amount": 100,
+            "transaction_type": "initial",
+            "description": "Initial credits",
+            "created_at": "2024-05-10T12:00:00Z",
+            "balance": 100
+        }]
+    })
 
 @router.get("/credits/balance", response_model=CreditBalance)
 async def get_balance(current_user: User = Depends(get_current_user)):
@@ -87,23 +100,6 @@ async def deduct_credits(
     balance = credit_repository.get_user_balance(current_user.id)
     result["balance"] = balance
     return result
-
-@router.get("/credits/transactions", response_model=List[CreditTransaction])
-async def get_transactions(
-    limit: int = 50,
-    offset: int = 0,
-    current_user: User = Depends(get_current_user)
-):
-    """Get transaction history"""
-    try:
-        transactions = credit_repository.get_transaction_history(
-            user_id=current_user.id,
-            limit=limit,
-            offset=offset
-        )
-        return transactions
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/credits/transactions", response_model=CreditTransaction)
 async def create_transaction(

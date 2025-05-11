@@ -6,7 +6,7 @@ from typing import Optional
 from passlib.context import CryptContext
 from infrastructure.db.db_connection import get_redis_client
 from infrastructure.db.user_repository_impl import UserRepositoryImpl
-from infrastructure.db.resource_manager import ResourceManager
+# from infrastructure.db.resource_manager import ResourceManager
 from core.entities.user import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -14,7 +14,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 class AuthService:
     def __init__(self):
         self.user_repository = UserRepositoryImpl()
-        self.resource_manager = ResourceManager()
+        # self.resource_manager = ResourceManager()
         self.redis_client = get_redis_client()
         self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
         self.SECRET_KEY = "your-secret-key"  # В продакшене использовать безопасный ключ
@@ -63,9 +63,6 @@ class AuthService:
         user = self.user_repository.save(user)
         if not user:
             return None, "Failed to create user"
-
-        # Create default quotas for the user
-        self.resource_manager.create_default_quotas(user.id)
 
         # Generate access token
         access_token = self.create_access_token(

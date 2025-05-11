@@ -1,15 +1,25 @@
 export class LLMService {
     static async generate(prompt) {
         try {
-            const response = await fetch('http://localhost:8000/qwen/generate', {
+            const result = await chrome.storage.local.get('authToken');
+            const authToken = result.authToken;
+
+            console.log('Current auth token:', authToken);
+            
+            if (!authToken) {
+                throw new Error('Необходима авторизация');
+            }
+            
+            const response = await fetch('http://localhost:8000/api/qwen/generate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
                 },
                 body: JSON.stringify({
-                    prompt: prompt.slice(0, 1000), // Ограничение длины запроса
+                    prompt: prompt.slice(0, 1000),
                     temperature: 0.7,
-                    max_length: 256
+                    max_tokens: 256
                 })
             });
 

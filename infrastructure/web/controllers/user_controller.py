@@ -1,57 +1,31 @@
 from fastapi import APIRouter, HTTPException, Depends, Header
-from pydantic import BaseModel, EmailStr
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 from core.use_cases.user_use_cases import UserUseCases
 from infrastructure.db.user_repository_impl import UserRepositoryImpl
 from infrastructure.db.request_history_repository_impl import RequestHistoryRepositoryImpl
 from infrastructure.web.auth_service import AuthService
 from core.entities.user import User
+from infrastructure.web.schemas.user_schema import (
+    UserCreate,
+    UserRegistration,
+    UserLogin,
+    UserResponse,
+    TokenResponse,
+    QuotaResponse,
+    RequestHistoryResponse,
+    UserPreferences
+)
+from infrastructure.db.credit_repository_impl import CreditRepositoryImpl
+
+
+credit_repository = CreditRepositoryImpl()
+
 
 router = APIRouter(prefix="/api", tags=["users"])
 user_repository = UserRepositoryImpl()
 request_history_repository = RequestHistoryRepositoryImpl()
 user_use_cases = UserUseCases(user_repository)
 auth_service = AuthService()
-
-# User Models
-class UserCreate(BaseModel):
-    name: str
-    email: str
-
-class UserRegistration(BaseModel):
-    name: str
-    email: EmailStr
-    password: str
-
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
-
-class UserResponse(BaseModel):
-    id: int
-    name: str
-    email: str
-
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-
-class QuotaResponse(BaseModel):
-    resource_type: str
-    limit: int
-    current_usage: int
-    reset_date: Optional[str]
-
-class RequestHistoryResponse(BaseModel):
-    id: int
-    request_type: str
-    status: str
-    processing_time: Optional[int]
-    created_at: str
-
-class UserPreferences(BaseModel):
-    theme: str = "light"
-    language: str = "en"
 
 # Authentication dependency
 async def get_current_user(authorization: str = Header(None)):
@@ -69,19 +43,43 @@ async def get_current_user(authorization: str = Header(None)):
 # Authentication Routes
 @router.post("/register", response_model=TokenResponse)
 async def register(user_data: UserRegistration):
-    """
-    Register a new user with authentication.
-    """
-    token_data, error = auth_service.register_user(
-        name=user_data.name,
-        email=user_data.email,
-        password=user_data.password
-    )
-    
-    if error:
-        raise HTTPException(status_code=400, detail=error)
-    
-    return token_data
+    """Register a new user with authentication, quotas and initial credits"""
+    try:
+        # Создание пользователя
+        token_data, error = auth_service.register_user(
+            name=user_data.name,
+            email=user_data.email,
+            password=user_data.password
+        )
+        
+        if error:
+            raise HTTPException(status_code=400, detail=error)
+
+        # Получение пользователя через репозиторий
+        user = user_repository.get_by_email(user_data.email)
+        if not user:
+            raise HTTPException(status_code=500, detail="User creation failed")
+
+        # Создание квот
+        user_use_cases.register_user(user.name, user.email)
+        
+        # Добавление кредитов через use case
+        success, result = credit_repository.add_credits(
+            user_id=user.id,
+            amount=100,
+            transaction_type="initial",
+            description="Initial registration credits"
+        )
+        
+        if not success:
+            raise HTTPException(status_code=500, detail=result)
+
+        return token_data
+        
+    except HTTPException as he:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/login", response_model=TokenResponse)
 async def login(user_data: UserLogin):
@@ -134,16 +132,6 @@ async def update_user_preferences(
     return updated_preferences
 
 # Existing User Routes
-@router.post("/users", response_model=UserResponse)
-def register_user(user: UserCreate):
-    """
-    Register a new user (legacy endpoint).
-    """
-    saved_user = user_use_cases.register_user(user.name, user.email)
-    if not saved_user:
-        raise HTTPException(status_code=400, detail="Failed to register user. Email may already be in use.")
-    return saved_user
-
 @router.get("/users/{user_id}", response_model=UserResponse)
 def get_user(user_id: int):
     """

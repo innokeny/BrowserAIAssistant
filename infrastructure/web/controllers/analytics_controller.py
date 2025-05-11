@@ -2,13 +2,13 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
-from infrastructure.db.quota_repository_impl import QuotaRepositoryImpl
+# from infrastructure.db.quota_repository_impl import QuotaRepositoryImpl
 from infrastructure.db.request_history_repository_impl import RequestHistoryRepositoryImpl
 from infrastructure.web.auth_service import get_current_user
 from infrastructure.db.models import User
 
 router = APIRouter(prefix="/api", tags=["analytics"])
-quota_repository = QuotaRepositoryImpl()
+# quota_repository = QuotaRepositoryImpl()
 request_history_repository = RequestHistoryRepositoryImpl()
 
 class UsageStatistics(BaseModel):

@@ -30,8 +30,8 @@ app.add_middleware(
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"] 
+    expose_headers=["*"],
+    allow_headers=["*", "Authorization"] 
 )
 
 app.include_router(credit_router)
@@ -65,11 +65,3 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 @app.get("/")
 def read_root():
     return {"status": "ok"}
-
-# Add routes
-# app.include_router(credit_router, prefix="/api", tags=["credits"])
-# app.include_router(analytics_router, prefix="/api", tags=["analytics"])
-# app.include_router(user_router, prefix="/api", tags=["users"])
-# app.include_router(qwen_router, prefix="/api", tags=["qwen"])
-# app.include_router(stt_router, prefix="/api", tags=["stt"])
-# app.include_router(tts_router, prefix="/api", tags=["tts"]) 
