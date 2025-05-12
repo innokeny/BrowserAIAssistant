@@ -1,15 +1,18 @@
 import { BaseScenario } from './base-scenario.js';
+import { CreditService } from '../services/credit-service.js';
 
 export class ScrollScenario extends BaseScenario {
     static name = "Прокрутка страницы";
 
     static match(text) {
-        return /прокрути|скролл|проскроль/i.test(text) &&
-            /на (\d+%)|на половину| наполовину/i.test(text);
+        return /прокрути|прокрутка|скролл|листай/i.test(text);
     }
 
     static async execute(text) {
         try {
+            // Списываем кредиты перед выполнением
+            await CreditService.deductCredits('scroll');
+            
             const percent = this.#parsePercent(text);
             const direction = this.#parseDirection(text);
 

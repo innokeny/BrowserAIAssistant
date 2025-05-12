@@ -8,10 +8,6 @@
 ├── README.md
 ├── app.log
 ├── browser-extension
-│   ├── background
-│   │   └── background.js
-│   ├── content
-│   │   └── content.js
 │   ├── icons
 │   │   ├── icon-128.png
 │   │   ├── icon-48.png
@@ -106,7 +102,6 @@
         ├── test_resource_manager.py
         └── test_user_controller.py
 ```
-
 ## Описание архитектуры
 
 ### Core (Ядро)

@@ -1,3 +1,10 @@
+.container {
+    width: 280px;
+    height: 350px;
+    padding: 15px;
+    box-sizing: border-box;
+}
+
 .container_popup {
   text-align: center;
   padding: 15px;
@@ -5,26 +12,45 @@
 
 .mic-button {
   transition: all 0.3s ease;
-  background-color: #4CAF50;
+  background-color: #c6c6c6;
   border-radius: 50%;
   padding: 15px;
 }
+
 .mic-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
-.mic-button img { width: 48px; height: 48px; }
-#status { margin: 10px 0; color: #666; }
+
+.mic-button img {
+    width: 48px;
+    height: 48px;
+}
+
+#status {
+    margin: 10px 0;
+    color: #666;
+}
 
 .recording {
-  background-color: #f44336 !important;
+  background-color: #585858 !important;
   transform: scale(1.1);
 }
+
 @keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
 }
+
 .permission-help {
   margin-top: 15px;
   padding: 10px;
@@ -32,6 +58,7 @@
   border-radius: 5px;
   font-size: 12px;
 }
+
 .search-highlight {
   background-color: yellow !important;
   color: black !important;
@@ -39,19 +66,42 @@
 
 .mic-button.recording {
   animation: pulse 1.5s infinite;
-  box-shadow: 0 0 15px rgba(244, 67, 54, 0.5);
+  box-shadow: 0 0 15px rgba(26, 25, 25, 0.5);
 }
 
 @keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
 }
 
 /* Auth Styles */
+
+.logo-section {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.logo-icon {
+  width: 36px;
+  height: 36px;
+}
+
+
 .auth-tabs {
   display: flex;
   margin-bottom: 1rem;
+  gap: 5px;
 }
 
 .tab-btn {
@@ -60,52 +110,215 @@
   border: none;
   background: #f0f0f0;
   cursor: pointer;
+  max-width: 120px;
+  font-size: 13px;
 }
 
 .tab-btn.active {
-  background: #007bff;
+  background: #585858;
   color: white;
 }
 
 .auth-form {
   display: none;
+  padding: 0 10px;
+  box-sizing: border-box;
 }
 
 .auth-form.active {
   display: block;
 }
 
-.form-group {
-  margin-bottom: 1rem;
+#register-form {
+  max-height: 250px;
+  overflow-y: auto;
+  padding-right: 5px;
+  padding-bottom: 1rem;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 0.3rem;
+#register-form::-webkit-scrollbar {
+  width: 4px;
 }
 
-.form-group input {
-  width: 100%;
-  padding: 0.3rem;
-  border: 1px solid #ddd;
-  border-radius: 3px;
+#register-form::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 2px;
+}
+
+#register-form::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 2px;
+}
+
+#register-form::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
 .auth-btn {
-  width: 100%;
-  padding: 0.5rem;
-  background: #28a745;
+  width: 120px;
+  padding: 8px;
+  background: #838383;
   color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  margin: 0 auto;
+  display: block;
+}
+
+#register-form .auth-btn {
+    width: 160px;
+}
+
+.auth-btn:hover {
+  background: #585858;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
 }
 
 .logout-btn {
-  background: #dc3545;
-  margin-top: 1rem;
+    border: none;
+    background: none;
+    cursor: pointer;
 }
 
 .auth-status {
   padding: 10px;
-  background: #f8f9fa;
-  border-radius: 4px;
   margin-bottom: 15px;
+}
+
+.user-role {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 0px;
+    font-size: 12px;
+}
+
+.user-icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 4px;
+}
+
+.crown-icon {
+    width: 26px;
+    height: 26px;
+}
+
+.user-section {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.user-section-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#current-user-section {
+    display: grid;
+    text-wrap: nowrap;
+}
+
+#current-user {
+    display: inline;
+    text-align: left;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.balance-section {
+    display: flex;
+    align-items: center;
+    margin: 10px 0;
+}
+
+.add-credits-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    border: none;
+    cursor: pointer;
+    background-color: transparent;
+    padding: 0;
+}
+
+.bitcoin-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.error-message {
+    color: #dc3545;
+    font-size: 12px;
+    margin: 8px 0;
+    min-height: 18px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background-color: rgba(220, 53, 69, 0.1);
+    transition: all 0.3s ease;
+}
+
+.error-message:empty {
+    background-color: transparent;
+}
+
+.error-message.success {
+    color: #28a745;
+    background-color: rgba(40, 167, 69, 0.1);
+}
+
+/* .success-message {
+    background-color: #d4edda;
+    color: #155724;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    text-align: center;
+} */
+
+.form-group {
+    margin-bottom: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-size: 14px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 14px;
+}
+
+.message {
+    font-size: 12px;
+    margin: 8px 0;
+    min-height: 18px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.message:empty {
+    display: none;
+}
+
+.message.error {
+    color: #dc3545;
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+.message.success {
+    color: #28a745;
+    background-color: rgba(40, 167, 69, 0.1);
 }

@@ -22,6 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (scenario !== "Общение с ИИ") {
           await TTSService.speak(`Выполняю: ${scenario}`);
         }
+        // Обновляем баланс после выполнения сценария
+        await updateBalance();
         statusEl.textContent = 'Нажмите и говорите';
       } else {
         // Начало записи
@@ -45,9 +47,87 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function checkAuthStatus() {
-  const token = await chrome.storage.local.get('authToken');
-  if (token) {
-    showAuthenticatedUI();
+  try {
+    const result = await chrome.storage.local.get('authToken');
+    const token = result.authToken;
+    
+    if (!token) {
+      showUnauthenticatedUI();
+      return;
+    }
+
+    // Проверяем валидность токена
+    const response = await fetch('http://localhost:8000/api/users/me', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (response.ok) {
+      const userData = await response.json();
+      document.getElementById('current-user').textContent = userData.name;
+      
+      // Сохраняем роль пользователя
+      await chrome.storage.local.set({ 
+        userRole: userData.user_role 
+      });
+      
+      // Получаем баланс пользователя
+      await updateBalance();
+      
+      // Логируем роль пользователя
+      console.log('Авторизованный пользователь:', {
+        name: userData.name,
+        email: userData.email,
+        role: userData.user_role
+      });
+      
+      // Добавляем индикатор роли
+      const roleIndicator = document.createElement('span');
+      roleIndicator.className = 'user-role';
+      const iconRole = document.createElement('img');
+      iconRole.className = 'crown-icon';
+      if (userData.user_role === 'admin') {
+        roleIndicator.innerHTML = 'Администратор';
+        iconRole.src = '../icons/crown-icon.png';
+      } else {
+        roleIndicator.innerHTML = 'Пользователь';
+        iconRole.src = '../icons/user-icon.png';
+      }
+      document.getElementById('current-user-section').appendChild(roleIndicator);
+      document.getElementById('icon-section').appendChild(iconRole);
+      showAuthenticatedUI();
+    } else {
+      // Если токен невалиден, очищаем его
+      await chrome.storage.local.remove('authToken');
+      await chrome.storage.local.remove('userRole');
+      showUnauthenticatedUI();
+    }
+  } catch (error) {
+    console.error('Auth check failed:', error);
+    showUnauthenticatedUI();
+  }
+}
+
+async function updateBalance() {
+  try {
+    const result = await chrome.storage.local.get('authToken');
+    const token = result.authToken;
+    
+    if (!token) return;
+    
+    const balanceResponse = await fetch('http://localhost:8000/api/credits/balance', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (balanceResponse.ok) {
+      const balanceData = await balanceResponse.json();
+      document.getElementById('user-balance').textContent = balanceData.balance + ' ₮';
+    }
+  } catch (error) {
+    console.error('Failed to update balance:', error);
   }
 }
 
@@ -70,8 +150,10 @@ function initAuthForms() {
     e.preventDefault();
     const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
+    const errorElement = document.getElementById('login-error');
     
     try {
+      console.log('Attempting to connect to server...');
       const response = await fetch('http://localhost:8000/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -83,10 +165,25 @@ function initAuthForms() {
         await chrome.storage.local.set({ 
           authToken: data.access_token 
         });
-        showAuthenticatedUI();
+        errorElement.textContent = ''; // Очищаем ошибку при успешном входе
+        // Проверяем статус авторизации после сохранения токена
+        await checkAuthStatus();
+      } else {
+        const errorData = await response.json();
+        errorElement.textContent = errorData.detail || 'Ошибка авторизации';
+        console.error('Login failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData.detail || 'Ошибка авторизации'
+        });
       }
     } catch (error) {
-      showError('Ошибка авторизации');
+      errorElement.textContent = 'Ошибка соединения с сервером';
+      console.error('Login error:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
     }
   });
 
@@ -98,15 +195,18 @@ function initAuthForms() {
     const email = document.getElementById('register-email').value.trim();
     const password = document.getElementById('register-password').value;
     const confirmPassword = document.getElementById('confirm-password').value;
+    const messageElement = document.getElementById('register-message');
   
     // Валидация
     if (!name || name.length < 2) {
-      showError('Имя должно содержать минимум 2 символа');
+      messageElement.textContent = 'Имя должно содержать минимум 2 символа';
+      messageElement.className = 'error-message';
       return;
     }
     
     if (password !== confirmPassword) {
-      showError('Пароли не совпадают');
+      messageElement.textContent = 'Пароли не совпадают';
+      messageElement.className = 'error-message';
       return;
     }
   
@@ -132,13 +232,16 @@ function initAuthForms() {
       const data = await response.json();
       
       if (response.ok) {
-        showSuccess('Регистрация успешна! Войдите в систему');
+        messageElement.textContent = 'Регистрация успешна! Войдите в систему';
+        messageElement.className = 'error-message success';
         document.querySelector('[data-tab="login"]').click();
       } else {
-        showError(data.detail || 'Ошибка регистрации');
+        messageElement.textContent = data.detail || 'Ошибка регистрации';
+        messageElement.className = 'error-message';
       }
     } catch (error) {
-      showError('Ошибка сети');
+      messageElement.textContent = 'Ошибка сети';
+      messageElement.className = 'error-message';
     }
   });
 
@@ -161,10 +264,37 @@ function showUnauthenticatedUI() {
   document.getElementById('main-interface').style.display = 'none';
 }
 
-function showError(message) {
-  const errorEl = document.createElement('div');
-  errorEl.className = 'error-message';
-  errorEl.textContent = message;
-  document.querySelector('.container').prepend(errorEl);
-  setTimeout(() => errorEl.remove(), 3000);
-}
+// Добавляем обработчик для кнопки добавления кредитов
+document.getElementById('add-credits-btn').addEventListener('click', async () => {
+  try {
+    const result = await chrome.storage.local.get('authToken');
+    const token = result.authToken;
+    
+    if (!token) {
+      console.log('Необходима авторизация');
+      return;
+    }
+    
+    const response = await fetch('http://localhost:8000/api/credits/add', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        amount: 100,
+        description: 'Пополнение баланса'
+      })
+    });
+    
+    if (response.ok) {
+      await updateBalance();
+      console.log('Баланс успешно пополнен');
+    } else {
+      const errorData = await response.json();
+      console.log(errorData.detail || 'Ошибка при пополнении баланса');
+    }
+  } catch (error) {
+    console.log('Ошибка при пополнении баланса');
+  }
+});

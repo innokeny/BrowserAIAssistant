@@ -39,9 +39,12 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
-class UserResponse(UserBase):
-    """Схема ответа с пользовательскими данными"""
+class UserResponse(BaseModel):
+    """Схема ответа с данными пользователя"""
     id: int
+    name: str
+    email: EmailStr
+    user_role: str
     model_config = ConfigDict(from_attributes=True)
 
 class TokenResponse(BaseModel):

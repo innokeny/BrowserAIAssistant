@@ -23,15 +23,15 @@ class RequestHistory(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    request_type = Column(String(50), nullable=False)  # e.g., "stt", "tts", "llm"
+    request_type = Column(String(50), nullable=False)  # e.g., "scroll", "search", "llm", "new_tab"
     request_data = Column(Text, nullable=True)  # Input data (truncated if needed)
-    response_data = Column(Text, nullable=True)  # Response data (truncated if needed)
     status = Column(String(20), nullable=False)  # e.g., "success", "error"
     error_message = Column(Text, nullable=True)
     processing_time = Column(Integer, nullable=True)  # in milliseconds
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
     
     user = relationship("User", back_populates="request_history") 
+    qwen_history = relationship("QwenHistory", back_populates="request", uselist=False)
 
 class UserCredits(Base):
     __tablename__ = 'user_credits'
@@ -57,6 +57,7 @@ class QwenHistory(Base):
     __tablename__ = "qwen_history"
     
     id = Column(Integer, primary_key=True)
+    request_id = Column(Integer, ForeignKey("request_history.id"), nullable=False, unique=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     prompt = Column(Text, nullable=False)
     response = Column(Text, nullable=False)
@@ -64,3 +65,4 @@ class QwenHistory(Base):
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
     
     user = relationship("User", back_populates="qwen_history")
+    request = relationship("RequestHistory", back_populates="qwen_history")

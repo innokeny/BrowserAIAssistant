@@ -10,13 +10,45 @@
   <!-- browser-extension/popup/popup.html -->
   <div class="container">
     <!-- Состояние аутентификации -->
-    <div id="auth-status" class="auth-status" style="display: none;">
+    <!-- <div id="auth-status" class="auth-status" style="display: none;">
       <span>Вы вошли как: <span id="current-user"></span></span>
-      <button id="logout-btn" class="btn logout-btn">Выйти</button>
+      <div class="balance-section">
+        <span>Баланс: <span id="user-balance">0</span> кредитов</span>
+        <button id="add-credits-btn" class="btn add-credits-btn">
+          <img src="../icons/bitcoin-icon.png" alt="Добавить кредиты" class="bitcoin-icon">
+        </button>
+      </div>
+      <button id="logout-btn" class="btn logout-btn">
+        <img src="../icons/log-out-icon.png" alt="Выйти" class="logout-icon">
+      </button>
+    </div> -->
+
+    <div id="auth-status" class="auth-status" style="display: none;">
+      <div class="user-section">
+        <div class="user-section-inner">
+          <div id="icon-section"></div>
+          <div id="current-user-section">
+            <span id="current-user"></span>
+          </div>
+        </div>
+        <button id="logout-btn" class="btn logout-btn">
+          <img src="../icons/log-out-icon.png" alt="Выйти" class="logout-icon">
+        </button>
+      </div>
+      <div class="balance-section">
+        <button id="add-credits-btn" class="btn add-credits-btn">
+          <img src="../icons/wallet-icon.png" alt="Добавить кредиты" class="bitcoin-icon">
+          <span id="user-balance">0</span>
+        </button>
+      </div>
     </div>
+
 
     <!-- Формы авторизации -->
     <div id="auth-forms">
+      <div class="logo-section">
+        <img src="../icons/user-voice.png" class="logo-icon">
+      </div>
       <!-- Переключение между формами -->
       <div class="auth-tabs">
         <button class="tab-btn active" data-tab="login">Вход</button>
@@ -33,6 +65,7 @@
           <label for="login-password">Пароль:</label>
           <input type="password" id="login-password" required>
         </div>
+        <div id="login-error" class="error-message"></div>
         <button type="submit" class="btn auth-btn">Войти</button>
       </form>
 
@@ -54,6 +87,7 @@
           <label for="confirm-password">Подтвердите пароль:</label>
           <input type="password" id="confirm-password" required>
         </div>
+        <div id="register-message" class="error-message"></div>
         <button type="submit" class="btn auth-btn">Зарегистрироваться</button>
       </form>
     </div>
