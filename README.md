@@ -8,10 +8,6 @@
 ├── README.md
 ├── app.log
 ├── browser-extension
-│   ├── background
-│   │   └── background.js
-│   ├── content
-│   │   └── content.js
 │   ├── icons
 │   │   ├── icon-128.png
 │   │   ├── icon-48.png
