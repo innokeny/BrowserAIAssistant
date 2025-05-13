@@ -5,15 +5,15 @@ from .config import rabbitmq_settings
 
 
 class RabbitMQClient:
-    """Base class for RabbitMQ operations."""
+    """Базовый класс для операций с RabbitMQ."""
     
     def __init__(self):
-        self.connection: Optional[aio_pika.Connection] = None
-        self.channel: Optional[aio_pika.Channel] = None
-        self.exchange: Optional[aio_pika.Exchange] = None
+        self.connection: Optional[aio_pika.Connection] = None  # Соединение с RabbitMQ
+        self.channel: Optional[aio_pika.Channel] = None  # Канал для обмена сообщениями
+        self.exchange: Optional[aio_pika.Exchange] = None  # Обменник для маршрутизации
         
     async def connect(self) -> None:
-        """Establish connection to RabbitMQ server."""
+        """Установка соединения с сервером RabbitMQ."""
         if not self.connection:
             self.connection = await aio_pika.connect_robust(
                 host=rabbitmq_settings.HOST,
@@ -29,7 +29,7 @@ class RabbitMQClient:
             )
     
     async def close(self) -> None:
-        """Close RabbitMQ connection."""
+        """Закрытие соединения с RabbitMQ."""
         if self.connection:
             await self.connection.close()
             self.connection = None
@@ -37,7 +37,7 @@ class RabbitMQClient:
             self.exchange = None
     
     async def publish_message(self, queue_name: str, message: Any) -> None:
-        """Publish message to specified queue."""
+        """Публикация сообщения в указанную очередь."""
         if not self.connection:
             await self.connect()
             
@@ -59,7 +59,7 @@ class RabbitMQClient:
         callback: Callable[[Any], None],
         prefetch_count: int = 1
     ) -> None:
-        """Start consuming messages from specified queue."""
+        """Начало потребления сообщений из указанной очереди."""
         if not self.connection:
             await self.connect()
             
@@ -78,11 +78,11 @@ class RabbitMQClient:
         message: aio_pika.IncomingMessage,
         callback: Callable[[Any], None]
     ) -> None:
-        """Process incoming message."""
+        """Обработка входящего сообщения."""
         async with message.process():
             try:
                 data = json.loads(message.body.decode())
                 await callback(data)
             except Exception as e:
-                print(f"Error processing message: {e}")
+                print(f"Ошибка обработки сообщения: {e}")
                 await message.reject(requeue=True) 

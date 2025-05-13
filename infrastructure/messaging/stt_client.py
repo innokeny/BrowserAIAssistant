@@ -4,10 +4,10 @@ from .config import rabbitmq_settings
 
 
 class STTRabbitMQClient(RabbitMQClient):
-    """RabbitMQ client for STT operations."""
+    """Клиент RabbitMQ для операций преобразования речи в текст (STT)."""
     
     async def publish_stt_request(self, audio_data: Any) -> None:
-        """Publish STT request to queue."""
+        """Публикация запроса на преобразование речи в текст в очередь STT."""
         await self.publish_message(
             rabbitmq_settings.STT_QUEUE,
             {
@@ -17,7 +17,7 @@ class STTRabbitMQClient(RabbitMQClient):
         )
     
     async def consume_stt_requests(self, callback: Callable[[Any], None]) -> None:
-        """Start consuming STT requests."""
+        """Начало потребления запросов на преобразование речи в текст."""
         await self.consume_messages(
             rabbitmq_settings.STT_QUEUE,
             callback

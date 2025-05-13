@@ -3,6 +3,7 @@ from fastapi.responses import StreamingResponse
 from core.use_cases.tts_use_cases import TextToSpeechUseCase
 from core.entities.text import TextInput
 from infrastructure.ml_models.silero.model import SileroModel
+from infrastructure.messaging.message_service import MessageService
 from io import BytesIO
 import logging
 
@@ -12,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 model = SileroModel()
 use_case = TextToSpeechUseCase(model)
+message_service = MessageService()
 
 def is_russian_text(text: str) -> bool:
     """Проверяет, содержит ли текст только русские символы"""
@@ -37,6 +39,11 @@ async def synthesize_speech(
         if not is_russian_text(text):
             raise HTTPException(400, detail="Поддерживается только русский язык")
 
+        # Публикуем запрос в очередь
+        await message_service.publish_tts_request(text, speaker)
+        logger.info(f"TTS request published to queue: {text[:50]}...")
+
+        # Для обратной совместимости продолжаем синхронную обработку
         text_input = TextInput(text=text)
         result = await use_case.synthesize(text_input=text_input, speaker=speaker)
         

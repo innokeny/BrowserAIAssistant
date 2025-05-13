@@ -4,10 +4,10 @@ from .config import rabbitmq_settings
 
 
 class TTSRabbitMQClient(RabbitMQClient):
-    """RabbitMQ client for TTS operations."""
+    """Клиент RabbitMQ для операций преобразования текста в речь (TTS)."""
     
     async def publish_tts_request(self, text_data: Any) -> None:
-        """Publish TTS request to queue."""
+        """Публикация запроса на преобразование текста в речь в очередь TTS."""
         await self.publish_message(
             rabbitmq_settings.TTS_QUEUE,
             {
@@ -17,7 +17,7 @@ class TTSRabbitMQClient(RabbitMQClient):
         )
     
     async def consume_tts_requests(self, callback: Callable[[Any], None]) -> None:
-        """Start consuming TTS requests."""
+        """Начало потребления запросов на преобразование текста в речь."""
         await self.consume_messages(
             rabbitmq_settings.TTS_QUEUE,
             callback
