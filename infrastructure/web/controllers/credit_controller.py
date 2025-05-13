@@ -79,21 +79,27 @@ async def deduct_credits(
     transaction: CreditTransaction,
     current_user: User = Depends(get_current_user)
 ):
-    """Deduct credits from user account"""
+    """Списание кредитов с баланса пользователя"""
+    # Проверяем, что сумма положительная
     if transaction.amount <= 0:
         raise HTTPException(status_code=400, detail="Amount must be positive")
 
+    # Получаем текущий баланс
     current_balance = credit_repository.get_user_balance(current_user.id)
+    
+    # Проверяем достаточность средств
     if current_balance < transaction.amount:
         raise HTTPException(status_code=400, detail="Insufficient credit balance")
 
+    # Создаем транзакцию списания (отрицательная сумма)
     result = credit_repository.create_transaction(
         user_id=current_user.id,
-        amount=-transaction.amount,  
+        amount=-transaction.amount,  # Отрицательное значение для списания
         transaction_type="deduct",
         description=transaction.description
     )
 
+    # Получаем обновленный баланс
     balance = credit_repository.get_user_balance(current_user.id)
     result["balance"] = balance
     return result

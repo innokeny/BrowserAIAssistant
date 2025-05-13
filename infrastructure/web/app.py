@@ -9,6 +9,9 @@ from infrastructure.web.controllers.qwen_controller import router as qwen_router
 from infrastructure.web.controllers.stt_controller import router as stt_router
 from infrastructure.web.controllers.tts_controller import router as tts_router
 from infrastructure.db.init_db import init_db, wait_for_db
+from infrastructure.messaging.message_service import MessageService
+from infrastructure.messaging.queue_processor import QueueProcessor
+import asyncio
 import logging
 
 logging.basicConfig(
@@ -43,7 +46,7 @@ app.include_router(qwen_router)
 @app.on_event("startup")
 async def startup_event():
     """
-    Initialize the database when the application starts.
+    Initialize the database and message service when the application starts.
     """
     logger.info("Waiting for database to be ready...")
     if wait_for_db():
@@ -52,6 +55,31 @@ async def startup_event():
         logger.info("Database initialization complete.")
     else:
         logger.error("Failed to connect to the database. Application may not function correctly.")
+
+    # Инициализация сервиса сообщений
+    try:
+        message_service = MessageService()
+        await message_service.initialize()
+        logger.info("Message service initialized successfully")
+
+        # Запуск обработчика очередей
+        queue_processor = QueueProcessor()
+        asyncio.create_task(queue_processor.start_processing())
+        logger.info("Queue processor started")
+    except Exception as e:
+        logger.error(f"Failed to initialize message service: {e}")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """
+    Cleanup when the application shuts down.
+    """
+    try:
+        message_service = MessageService()
+        await message_service.close()
+        logger.info("Message service connections closed")
+    except Exception as e:
+        logger.error(f"Error closing message service connections: {e}")
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):

@@ -64,6 +64,8 @@
 │   ├── messaging
 │   │   ├── config.py
 │   │   ├── llm_client.py
+│   │   ├── message_service.py
+│   │   ├── queue_processor.py
 │   │   ├── rabbitmq_client.py
 │   │   ├── stt_client.py
 │   │   └── tts_client.py

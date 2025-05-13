@@ -10,7 +10,7 @@ class CreditRepositoryImpl:
         self.redis_client = get_redis_client()
     
     def get_user_balance(self, user_id: int) -> int:
-        """Get user's current credit balance"""
+        """Получение текущего баланса кредитов пользователя"""
         cache_key = f"credits:{user_id}"
         cached_balance = self.redis_client.get(cache_key)
         
@@ -62,13 +62,16 @@ class CreditRepositoryImpl:
                 return False, str(e)
     
     def spend_credits(self, user_id, amount, scenario_type=None, description=None):
-        """Spend credits from user's balance"""
+        """Списание кредитов с баланса пользователя"""
         with get_db_session() as session:
+            # Получаем текущий баланс
             current_balance = self.get_user_balance(user_id)
             
+            # Проверяем достаточность средств
             if current_balance < amount:
                 return False, "Insufficient credits"
             
+            # Получаем запись о кредитах пользователя
             user_credits = session.query(UserCredits).filter(
                 UserCredits.user_id == user_id
             ).first()
@@ -77,20 +80,25 @@ class CreditRepositoryImpl:
                 user_credits = UserCredits(user_id=user_id, balance=0)
                 session.add(user_credits)
             
+            # Создаем запись о транзакции
             transaction = CreditTransaction(
                 user_id=user_id,
-                amount=-amount,
+                amount=-amount,  # Отрицательное значение для списания
                 transaction_type='scenario_usage',
                 scenario_type=scenario_type,
                 description=description
             )
+            
+            # Обновляем баланс
             user_credits.balance -= amount
             session.add(user_credits)
             session.commit()
             
+            # Инвалидируем кэш
             cache_key = f"credits:{user_id}"
             self.redis_client.delete(cache_key)
             
+            # Получаем обновленный баланс
             total_balance = self.get_user_balance(user_id)
             
             return True, total_balance
@@ -210,14 +218,16 @@ class CreditRepositoryImpl:
         transaction_type: str,
         description: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Create a new credit transaction"""
+        """Создание новой транзакции по кредитам"""
         with get_db_session() as session:
+            # Получаем текущий баланс
             current_balance = self.get_user_balance(user_id)
             
+            # Проверяем достаточность средств при списании
             if amount < 0 and current_balance + amount < 0:
                 raise ValueError("Insufficient credit balance")
             
-            # Создаем транзакцию
+            # Создаем запись о транзакции
             transaction = CreditTransaction(
                 user_id=user_id,
                 amount=amount,
@@ -241,6 +251,7 @@ class CreditRepositoryImpl:
             session.commit()
             session.refresh(transaction)
             
+            # Получаем новый баланс
             new_balance = user_credits.balance
             
             # Обновляем кэш в Redis

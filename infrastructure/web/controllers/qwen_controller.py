@@ -2,14 +2,19 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, ValidationError
 from typing import Optional, List
 from core.use_cases.qwen_use_cases import QwenUseCase
-from core.entities.text import LLMInput
+from core.entities.text import LLMInput, TextInput
 from core.entities.user import User
 from infrastructure.web.auth_service import get_current_user
 from infrastructure.db.models import User as DBUser
 from core.repositories.qwen_repository_impl import QwenRepositoryImpl
 from core.repositories.credit_repository_impl import CreditRepositoryImpl
 from infrastructure.web.schemas.qwen_schema import QwenHistory
+from fastapi.responses import JSONResponse
+from infrastructure.ml_models.qwen.model import QwenModel
+from infrastructure.messaging.message_service import MessageService
 import logging
+import asyncio
+from uuid import uuid4
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +22,11 @@ router = APIRouter(prefix="/api/qwen", tags=["qwen"])
 use_case = QwenUseCase()
 qwen_repo = QwenRepositoryImpl()
 credit_repo = CreditRepositoryImpl()
+model = QwenModel()
+message_service = MessageService()
+
+# Словарь для хранения результатов обработки
+response_futures = {}
 
 # Models
 class GenerateTextRequest(BaseModel):
@@ -37,7 +47,6 @@ class GenerateTextRequest(BaseModel):
 
 class GenerateTextResponse(BaseModel):
     text: str
-
 
 @router.get("/history", response_model=List[QwenHistory])
 async def get_history(
@@ -66,68 +75,43 @@ async def get_history(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/generate", response_model=GenerateTextResponse)
+@router.post("/generate")
 async def generate_text(
-    request_data: GenerateTextRequest,
-    current_user: User = Depends(get_current_user)
-):
-    """Generate text using Qwen model"""
+    request_data: dict  # {"prompt": "текст", "max_tokens": 500, "temperature": 0.7}
+) -> JSONResponse:
     try:
-        # Проверяем баланс до генерации
-        current_balance = credit_repo.get_user_balance(current_user.id)
-        logger.info(f"Current balance for user {current_user.id}: {current_balance}")
-        
-        # Проверяем наличие 10 кредитов для LLM-чата
-        if current_balance < 10: 
-            logger.error(f"Insufficient credits for user {current_user.id}: {current_balance}")
-            raise HTTPException(
-                status_code=400,
-                detail="Insufficient credits. LLM chat requires 10 credits."
-            )
-        
-        input_data = LLMInput(prompt=request_data.prompt)
-        logger.debug(f"Input data: {input_data}")
-        
-        result = await use_case.generate(
-            input_data=input_data,
-            max_length=request_data.max_tokens,
-            temperature=request_data.temperature
-        )
-        
-        if not result.is_success:
-            logger.error(f"Generation failed: {result.error_message}")
-            raise HTTPException(400, detail=result.error_message)
+        prompt = request_data.get("prompt", "")
+        max_tokens = request_data.get("max_tokens", 500)
+        temperature = request_data.get("temperature", 0.7)
 
-        # Списываем 10 кредитов после успешной генерации
-        try:
-            transaction_result = credit_repo.create_transaction(
-            user_id=current_user.id,
-                amount=-10,
-            transaction_type="scenario_llm",
-                description="Запрос к LLM (10 кредитов)"
-        )
-            logger.info(f"Credit transaction created: {transaction_result}")
-            
-            # Проверяем новый баланс
-            new_balance = credit_repo.get_user_balance(current_user.id)
-            logger.info(f"New balance after deduction: {new_balance}")
-            
-            if new_balance >= current_balance:
-                logger.error("Credit deduction failed - balance not decreased")
-                raise HTTPException(500, detail="Failed to deduct credits")
-                
-        except Exception as e:
-            logger.error(f"Failed to create credit transaction: {str(e)}")
-            raise HTTPException(500, detail="Failed to process credit transaction")
-            
-        logger.info(f"Successfully generated {len(result.text)} symbols")
-        return {"text": result.text}
+        # Генерируем уникальный ID для запроса
+        request_id = str(uuid4())
         
-    except ValidationError as e:
-        logger.error(f"Validation error: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e))
-    except HTTPException:
-        raise
+        # Создаем Future для ожидания результата
+        future = asyncio.Future()
+        response_futures[request_id] = future
+
+        # Публикуем запрос в очередь
+        await message_service.publish_llm_request(
+            prompt=prompt,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            request_id=request_id  # Добавляем ID запроса
+        )
+        logger.info(f"LLM request published to queue: {prompt[:50]}...")
+
+        # Ждем результат
+        try:
+            result = await asyncio.wait_for(future, timeout=30.0)  # 30 секунд таймаут
+            return JSONResponse(content={"text": result})
+        except asyncio.TimeoutError:
+            raise HTTPException(504, detail="Request timeout")
+        finally:
+            # Удаляем Future из словаря
+            response_futures.pop(request_id, None)
+            
+    except HTTPException as he:
+        raise he
     except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
-        raise HTTPException(500, detail=str(e))
+        logger.error(f"LLM error: {str(e)}", exc_info=True)
+        raise HTTPException(500, detail="Internal server error")

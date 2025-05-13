@@ -96,7 +96,7 @@ async function checkAuthStatus() {
       }
       document.getElementById('current-user-section').appendChild(roleIndicator);
       document.getElementById('icon-section').appendChild(iconRole);
-      showAuthenticatedUI();
+    showAuthenticatedUI();
     } else {
       // Если токен невалиден, очищаем его
       await chrome.storage.local.remove('authToken');
@@ -296,5 +296,5 @@ document.getElementById('add-credits-btn').addEventListener('click', async () =>
     }
   } catch (error) {
     console.log('Ошибка при пополнении баланса');
-  }
+}
 });
